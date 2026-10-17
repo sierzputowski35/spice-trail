@@ -1,0 +1,149 @@
+/* Spice Trail : variables de couleurs, polices, espacements (clair et sombre).
+   C'est le SEUL fichier où des couleurs sont écrites en dur (voir docs/systeme-visuel.md).
+
+   Couleur du pays : js/couleurs.js écrit --accent-l (la couleur du pays) et
+   --accent-strong (sa version assombrie pour les textes blancs) sur <html>.
+   Toutes les autres teintes du pays en sont déduites ici.
+
+   Thème : celui du téléphone par défaut ; data-theme="light" ou "dark" sur
+   n'importe quel élément force un thème pour cet élément et son contenu. */
+
+:root,
+[data-theme="light"] {
+  /* Couleurs communes */
+  --bg: #FFF6E5;
+  --home: #4FE0A2;
+  --surface: #FFFFFF;
+  --surface-2: #FFF1D6;
+  --fg: #1B1410;
+  --ink: #1B1410;
+  --on-ink: #FFFFFF;        /* texte posé sur l'encre (onglet actif) */
+  --muted: #6B5A4A;
+  --soft-line: #EADBC6;
+  --border: #1B1410;
+  --shadow-ink: #1B1410;
+  --sun: #4FE0A2;          /* couleur signature : menthe */
+  --mint: #FF7EB3;         /* couleur d'appoint (badges de labels) */
+  --ocean: #4C8DF6;
+  --ocean-line: rgba(255, 255, 255, .28);
+  --land: #FFF6E5;
+  --land-soon: #FFF6E5;
+
+  /* Couleurs fixes, identiques en clair et en sombre */
+  --on-sun: #1B1410;       /* texte posé sur la menthe ou le rose */
+  --on-accent: #FFFFFF;    /* texte posé sur la couleur du pays */
+  --paper: #FFFFFF;        /* pastilles blanches sur l'en-tête des recettes */
+  --paper-ink: #1B1410;
+  --map-ink: #1B1410;      /* noms et points sur la carte */
+  --map-halo: #FFFFFF;
+  --hot-soft: #FFE3DD;     /* puce « piquant » */
+  --veil-top: rgba(20, 12, 8, .6);       /* voile sur le drapeau des recettes */
+  --veil-bottom: rgba(20, 12, 8, .68);
+  --title-shadow: rgba(0, 0, 0, .45);
+
+  /* Teintes du pays, déduites de --accent-l et --accent-strong (voir plus bas) */
+  --accent-d: color-mix(in srgb, var(--accent-l) 70%, #FFFFFF);
+  --accent: var(--accent-l);
+  --accent-text: var(--accent-strong);
+  --accent-soft: color-mix(in srgb, var(--accent) 14%, var(--surface));
+  --country-bg: var(--accent-l);
+  --country-shade: color-mix(in srgb, var(--accent-l) 78%, #000000);
+  --country-land: color-mix(in srgb, var(--accent-l) 22%, #FFF6E5);
+
+  /* Ombres dures, sans flou */
+  --hard: 3px 3px 0 var(--shadow-ink);
+  --hard-sm: 2px 2px 0 var(--shadow-ink);
+  --hard-lg: 5px 6px 0 var(--shadow-ink);
+
+  /* Polices */
+  --font-display: "Bricolage Grotesque", "Arial Black", "Noto Sans Devanagari", "Noto Sans SC", sans-serif;
+  --font-body: "Inter", system-ui, -apple-system, "Segoe UI", "Noto Sans Devanagari", "Noto Sans SC", sans-serif;
+  --font-cjk: "Noto Sans SC", "Noto Sans Devanagari", "PingFang SC", "Microsoft YaHei", sans-serif;
+
+  /* Mesures et mouvements */
+  --tabbar-h: 66px;
+  --spring: cubic-bezier(.3, 1.7, .5, 1);
+
+  color-scheme: light;
+}
+
+/* Couleur du pays par défaut (avant l'entrée dans un pays). Déclarée seulement
+   sur <html>, pour que js/couleurs.js la remplace partout, thème forcé compris. */
+:root {
+  --accent-l: #6B5A4A;
+  --accent-strong: #6B5A4A;
+}
+
+/* Élément qui porte la couleur d'un autre pays (listes de recherche ou de favoris) :
+   ses teintes sont recalculées à partir de son propre --accent-l. */
+[data-teinte-pays] {
+  --accent-d: color-mix(in srgb, var(--accent-l) 70%, #FFFFFF);
+  --accent: var(--accent-l);
+  --accent-text: var(--accent-strong);
+}
+
+/* Valeurs sombres : écrites une fois, appliquées par le réglage du téléphone
+   ou par data-theme="dark". */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #17110D;
+    --home: #17110D;
+    --surface: #241B16;
+    --surface-2: #2E241D;
+    --fg: #F7EBDD;
+    --ink: #F7EBDD;
+    --on-ink: #17110D;
+    --muted: #BFAE9C;
+    --soft-line: #3A2E26;
+    --border: #F7EBDD;
+    --shadow-ink: #000000;
+    --ocean: #2F64C4;
+    --land: #F7EBDD;
+    --land-soon: #F7EBDD;
+    --accent: var(--accent-d);
+    --accent-text: var(--accent);
+    --accent-soft: color-mix(in srgb, var(--accent) 14%, var(--surface));
+    --country-bg: color-mix(in srgb, var(--accent-l) 72%, #000000);
+    --country-shade: color-mix(in srgb, var(--accent-l) 40%, #000000);
+    --country-land: color-mix(in srgb, var(--accent-l) 30%, #241B16);
+    --hard: 3px 3px 0 var(--shadow-ink);
+    --hard-sm: 2px 2px 0 var(--shadow-ink);
+    --hard-lg: 5px 6px 0 var(--shadow-ink);
+    color-scheme: dark;
+  }
+  :root:not([data-theme="light"]) [data-teinte-pays] {
+    --accent: var(--accent-d);
+    --accent-text: var(--accent);
+  }
+}
+
+[data-theme="dark"] {
+  --bg: #17110D;
+  --home: #17110D;
+  --surface: #241B16;
+  --surface-2: #2E241D;
+  --fg: #F7EBDD;
+  --ink: #F7EBDD;
+  --on-ink: #17110D;
+  --muted: #BFAE9C;
+  --soft-line: #3A2E26;
+  --border: #F7EBDD;
+  --shadow-ink: #000000;
+  --ocean: #2F64C4;
+  --land: #F7EBDD;
+  --land-soon: #F7EBDD;
+  --accent: var(--accent-d);
+  --accent-text: var(--accent);
+  --accent-soft: color-mix(in srgb, var(--accent) 14%, var(--surface));
+  --country-bg: color-mix(in srgb, var(--accent-l) 72%, #000000);
+  --country-shade: color-mix(in srgb, var(--accent-l) 40%, #000000);
+  --country-land: color-mix(in srgb, var(--accent-l) 30%, #241B16);
+  --hard: 3px 3px 0 var(--shadow-ink);
+  --hard-sm: 2px 2px 0 var(--shadow-ink);
+  --hard-lg: 5px 6px 0 var(--shadow-ink);
+  color-scheme: dark;
+}
+[data-theme="dark"] [data-teinte-pays] {
+  --accent: var(--accent-d);
+  --accent-text: var(--accent);
+}

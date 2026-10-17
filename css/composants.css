@@ -1,0 +1,755 @@
+/* Composants réutilisables, fidèles au prototype (reference/prototype-spice-trail.html).
+   Aucune couleur écrite ici : uniquement les variables de css/tokens.css.
+   Le placement à l'écran (position, hauteur) est dans css/ecrans.css. */
+
+/* ---------- Étiquette autocollante ---------- */
+.sticker {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 11px;
+  border: 2px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--fg);
+  box-shadow: var(--hard);
+  font: 700 12px var(--font-body);
+  letter-spacing: .02em;
+  white-space: nowrap;
+}
+.sticker.sun { background: var(--sun); color: var(--on-sun); }
+.sticker.accent { background: var(--accent-strong); color: var(--on-accent); }
+.sticker.mint { background: var(--mint); color: var(--on-sun); }
+
+.tilt-l { transform: rotate(-3deg); }
+.tilt-r { transform: rotate(2.5deg); }
+
+/* Pastille de couleur dans une étiquette (légende du globe) */
+.dot {
+  display: block;
+  width: 11px;
+  height: 11px;
+  border: 1.5px solid var(--map-ink);
+  border-radius: 6px;
+}
+.dot.available { background: var(--accent-l); }
+.dot.soon { background: var(--land-soon); }
+
+/* ---------- Bouton rond (retour, favori, à propos) ---------- */
+.round {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  padding: 0;
+  border: 2px solid var(--border);
+  border-radius: 23px;
+  background: var(--surface);
+  color: var(--fg);
+  box-shadow: var(--hard);
+}
+.round svg { width: 20px; height: 20px; }
+
+.fav svg { stroke: var(--accent-l); fill: none; }
+.fav[aria-pressed="true"] { background: var(--sun); }
+.fav[aria-pressed="true"] svg { fill: var(--accent-l); }
+
+/* ---------- Fil d'Ariane ---------- */
+.crumbs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  height: 46px;
+  padding: 0 14px;
+  border: 2px solid var(--border);
+  border-radius: 23px;
+  background: var(--surface);
+  box-shadow: var(--hard);
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.crumbs::-webkit-scrollbar { display: none; }
+.crumbs button {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+}
+.crumbs [aria-current] {
+  color: var(--fg);
+  font-family: var(--font-display);
+  font-weight: 800;
+}
+.crumbs .sep { color: var(--muted); }
+
+/* ---------- Panneau de fiche ---------- */
+.sheet {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-bottom: 0;
+  border-radius: 30px 30px 0 0;
+}
+.handle {
+  flex: none;
+  display: grid;
+  place-items: center;
+  /* Zone tactile de 44 px ; elle déborde sur l'en-tête sans gêner le bouton favori (à droite) */
+  width: min(200px, 55%);
+  height: 44px;
+  margin: 0 auto -14px;
+  position: relative;
+  z-index: 1;
+  border: 0;
+  background: none;
+  touch-action: none;
+  cursor: grab;
+}
+.handle::before {
+  content: "";
+  width: 46px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--shadow-ink);
+  opacity: .85;
+}
+.handle:active { transform: none; }
+
+.sheet-head {
+  flex: none;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 max(20px, env(safe-area-inset-right, 0px)) 0 max(20px, env(safe-area-inset-left, 0px));
+}
+.sheet-head h2 {
+  margin-top: 10px;
+  font-size: clamp(34px, 10vw, 46px);
+}
+.sheet-head .local {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 15px;
+}
+.sheet-body {
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 18px max(20px, env(safe-area-inset-right, 0px)) 36px max(20px, env(safe-area-inset-left, 0px));
+}
+
+/* ---------- Onglets ---------- */
+.tabs {
+  flex: none;
+  display: flex;
+  gap: 6px;
+  padding: 12px 16px;
+  border-bottom: 2px solid var(--soft-line);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.tabs button {
+  flex: none;
+  min-height: 44px;
+  padding: 0 15px;
+  border: 2px solid transparent;
+  border-radius: 22px;
+  background: none;
+  color: var(--muted);
+  font-weight: 700;
+}
+.tabs button[aria-selected="true"] {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--on-ink);
+}
+
+/* ---------- Texte des fiches ---------- */
+.prose { max-width: 62ch; }
+.prose p { margin: 0 0 12px; }
+.prose ul { margin: 0 0 12px; padding-left: 18px; }
+.prose li { margin-bottom: 6px; }
+
+.lead {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.section-label {
+  margin: 0 0 12px;
+  color: var(--muted);
+  font: 800 13px var(--font-display);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+/* ---------- Encadré « Ce qu'on raconte » ---------- */
+.legend-box {
+  position: relative;
+  margin: 26px 4px 6px;
+  padding: 22px 16px 14px;
+  border: 2px solid var(--border);
+  border-radius: 18px;
+  background: var(--sun);
+  color: var(--on-sun);
+  box-shadow: var(--hard-lg);
+}
+.legend-box h3 {
+  position: absolute;
+  top: -15px;
+  left: 14px;
+  padding: 4px 12px;
+  border: 2px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--fg);
+  font: 800 14px var(--font-display);
+  letter-spacing: 0;
+  transform: rotate(-2.5deg);
+}
+.legend-box p:last-child { margin-bottom: 0; }
+.legend-box a { color: var(--on-sun); }
+
+/* ---------- Bouton « En savoir plus » ---------- */
+.more-btn {
+  min-height: 44px;
+  margin-top: 8px;
+  padding: 0 18px;
+  border: 2px solid var(--border);
+  border-radius: 22px;
+  background: var(--surface);
+  color: var(--fg);
+  box-shadow: var(--hard);
+  font-family: var(--font-display);
+  font-weight: 800;
+}
+
+/* ---------- Listes de cartes (plats, recettes, résultats) ---------- */
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0 0 24px;
+  padding: 0;
+  list-style: none;
+}
+.list > li { animation: rise .45s var(--spring) both; }
+.list > li:nth-child(2) { animation-delay: .05s; }
+.list > li:nth-child(3) { animation-delay: .1s; }
+.list > li:nth-child(4) { animation-delay: .15s; }
+.list > li:nth-child(5) { animation-delay: .2s; }
+.list > li:nth-child(6) { animation-delay: .25s; }
+.list > li:nth-child(n+7) { animation-delay: .3s; }
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px;
+  border: 2px solid var(--border);
+  border-radius: 18px;
+  background: var(--surface);
+  color: var(--fg);
+  box-shadow: var(--hard);
+  text-align: left;
+}
+div.item { border-color: var(--soft-line); box-shadow: none; }
+button.item:hover { background: var(--surface-2); }
+.item .min { flex: 1; min-width: 0; }
+.item .t {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.15;
+}
+.item .o { color: var(--muted); font-size: 13px; }
+.item .d { display: block; margin-top: 4px; color: var(--fg); font-size: 14px; }
+.go { flex: none; align-self: center; color: var(--fg); }
+
+/* Vignette : photo, ou nom d'origine sur la couleur du pays */
+.thumb {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 62px;
+  height: 62px;
+  border: 2px solid var(--border);
+  border-radius: 14px;
+  background: var(--accent-strong);
+  color: var(--on-accent);
+  font-family: var(--font-cjk);
+  font-size: 23px;
+  font-weight: 700;
+  overflow: hidden;
+}
+.thumb.lat {
+  padding: 0 4px;
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.05;
+  text-align: center;
+}
+.thumb.avec-photo { padding: 0; }
+.thumb img { width: 100%; height: 100%; object-fit: cover; }
+
+/* Photo vérifiée d'une recette, en bandeau sous l'en-tête (format 3:2) */
+.r-photo {
+  margin: 0;
+  aspect-ratio: 3 / 2;
+  max-height: 60vh;
+  overflow: hidden;
+  border-bottom: 2px solid var(--border);
+  background: var(--accent-strong);
+}
+.r-photo img { width: 100%; height: 100%; max-width: none; object-fit: cover; }
+
+/* ---------- Puces ---------- */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 8px;
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border: 1.5px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--fg);
+  font-size: 12px;
+  font-weight: 700;
+  max-width: 100%;   /* un long libellé (ustensile) passe à la ligne au lieu de déborder */
+}
+.chip.accent { background: var(--sun); color: var(--on-sun); }
+.chip.hot { background: var(--hot-soft); color: var(--on-sun); }
+
+.pepper { display: inline-flex; gap: 1px; vertical-align: middle; }
+.pepper svg { width: 13px; height: 13px; }
+/* Sur un fond clair fixe (puce rose, étiquette menthe), les piments gardent la teinte foncée
+   du pays, y compris en mode sombre */
+.chip.hot .pepper path,
+.meta .hot .pepper path { stroke: var(--accent-strong); }
+.chip.hot .pepper path[fill="var(--accent)"],
+.meta .hot .pepper path[fill="var(--accent)"] { fill: var(--accent-strong); }
+
+/* Label vérifié (AOP, IGP…) */
+.badge {
+  margin-left: 6px;
+  padding: 2px 7px;
+  border: 2px solid var(--border);
+  border-radius: 6px;
+  background: var(--mint);
+  color: var(--on-sun);
+  font: 800 11px var(--font-body);
+}
+
+/* ---------- En-tête de recette ---------- */
+.r-top {
+  position: relative;
+  overflow: hidden;
+  padding: calc(env(safe-area-inset-top, 0px) + 74px) max(20px, env(safe-area-inset-right, 0px)) 28px max(20px, env(safe-area-inset-left, 0px));
+  border-bottom: 2px solid var(--border);
+  background-color: var(--country-bg);
+  background-position: center;
+  background-size: cover;
+  color: var(--on-accent);
+}
+/* Drapeau en fond sous un voile sombre : style="--drapeau: url(...)" */
+.r-top.flag {
+  background-image: linear-gradient(var(--veil-top), var(--veil-bottom)), var(--drapeau);
+}
+.r-top .big {
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 0px) + 6px);
+  right: -8px;
+  color: var(--on-accent);
+  font-family: var(--font-cjk);
+  font-size: min(150px, 34vw);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -.02em;
+  white-space: nowrap;
+  opacity: .16;
+  pointer-events: none;
+}
+.r-top .big.lat {
+  right: auto;
+  left: -4px;
+  font-family: var(--font-display);
+  font-size: min(120px, 28vw);
+  font-weight: 800;
+}
+.r-top > .round {
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 0px) + 14px);
+}
+.r-top .back { left: max(16px, env(safe-area-inset-left, 0px)); }
+.r-top .fav { right: max(16px, env(safe-area-inset-right, 0px)); }
+.r-top h1 {
+  position: relative;
+  color: var(--on-accent);
+  font-size: clamp(40px, 12vw, 60px);
+  text-shadow: 0 2px 10px var(--title-shadow);
+}
+.r-top .o {
+  position: relative;
+  margin-top: 8px;
+  color: var(--on-accent);
+  font-size: 16px;
+}
+.r-top .note {
+  position: relative;
+  margin-top: 16px;
+  font-size: 12px;
+  opacity: .8;
+}
+
+/* Étiquettes d'origine cliquables (ville, région, pays) */
+.origin {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+.origin button {
+  position: relative;
+  min-height: 32px;
+  padding: 3px 11px;
+  border: 2px solid var(--paper-ink);
+  border-radius: 999px;
+  background: var(--paper);
+  color: var(--paper-ink);
+  box-shadow: 2px 2px 0 var(--paper-ink);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* ---------- Étiquettes de recette (temps, difficulté, piquant) ---------- */
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 22px 0 4px;
+}
+.meta div {
+  padding: 8px 12px;
+  border: 2px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: var(--hard);
+}
+.meta div:nth-child(odd) { transform: rotate(-1.5deg); }
+.meta div:nth-child(even) { transform: rotate(1.2deg); }
+.meta div.hot { background: var(--sun); color: var(--on-sun); }
+.meta dt {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  opacity: .75;
+}
+.meta dd {
+  margin: 0;
+  font: 800 17px var(--font-display);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Sections de recette ---------- */
+.r-sec { margin-top: 30px; }
+.r-sec > h2 { margin-bottom: 14px; font-size: 28px; }
+.row-between {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.row-between h2 { margin: 0; font-size: 28px; }
+
+/* ---------- Compteur de portions ---------- */
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px;
+  border: 2px solid var(--border);
+  border-radius: 26px;
+  background: var(--surface);
+  box-shadow: var(--hard);
+}
+.stepper button {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 22px;
+  background: none;
+}
+.stepper button.plus { background: var(--accent-strong); color: var(--on-accent); }
+.stepper output {
+  min-width: 74px;
+  font: 800 16px var(--font-display);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+/* ---------- Ingrédients ---------- */
+.ing {
+  margin-bottom: 14px;
+  padding: 4px 14px;
+  border: 2px solid var(--border);
+  border-radius: 18px;
+  background: var(--surface);
+  box-shadow: var(--hard);
+}
+.ing h3 {
+  padding: 12px 0 2px;
+  color: var(--accent-text);
+  font: 800 13px var(--font-display);
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+.ing ul { margin: 0; padding: 0; list-style: none; }
+.ing li {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 10px 0;
+  border-bottom: 1.5px dashed var(--soft-line);
+}
+.ing li:last-child { border-bottom: 0; }
+.ing .n { min-width: 0; font-weight: 500; }
+.ing .sub {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 400;
+}
+.ing .q {
+  font: 800 16px var(--font-display);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+.ing .q.bump { animation: bump .35s var(--spring); }
+
+/* Ingrédient qui renvoie vers une autre recette */
+.ing-link {
+  position: relative;
+  min-height: 24px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent-text);
+  font: inherit;
+  font-weight: 700;
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* ---------- Étapes ---------- */
+.steps {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: s;
+}
+.steps li {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  gap: 12px;
+  counter-increment: s;
+}
+.steps li::before {
+  content: counter(s);
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 2px solid var(--border);
+  border-radius: 50%;
+  background: var(--sun);
+  color: var(--on-sun);
+  box-shadow: var(--hard-sm);
+  font: 800 17px var(--font-display);
+}
+
+/* ---------- Minuteur ---------- */
+.timer {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  margin-top: 10px;
+  padding: 0 14px;
+  border: 2px solid var(--border);
+  border-radius: 22px;
+  background: var(--surface);
+  color: var(--fg);
+  box-shadow: var(--hard);
+  font-size: 13px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.timer.running { background: var(--sun); color: var(--on-sun); }
+.timer svg { width: 16px; height: 16px; }
+
+/* ---------- Conseils du chef ---------- */
+.tip {
+  padding: 14px 16px;
+  border: 2px solid var(--border);
+  border-radius: 18px;
+  background: var(--surface);
+  box-shadow: var(--hard);
+}
+.tip ul { margin: 0; padding-left: 18px; }
+.tip li { margin-bottom: 6px; }
+
+/* ---------- Recherche ---------- */
+.search-box {
+  position: relative;
+  margin: 16px 0 14px;
+}
+.search-box input {
+  width: 100%;
+  height: 52px;
+  padding: 0 16px 0 46px;
+  border: 2px solid var(--border);
+  border-radius: 26px;
+  background: var(--surface);
+  color: var(--fg);
+  box-shadow: var(--hard);
+  font: inherit;
+  font-weight: 500;
+}
+.search-box input::placeholder { color: var(--muted); }
+.search-box svg {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  width: 20px;
+  height: 20px;
+  color: var(--fg);
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 22px;
+}
+.filters button {
+  min-height: 44px;
+  padding: 0 14px;
+  border: 2px solid var(--border);
+  border-radius: 22px;
+  background: var(--surface);
+  color: var(--fg);
+  font-size: 14px;
+  font-weight: 700;
+}
+.filters button[aria-pressed="true"] {
+  background: var(--sun);
+  color: var(--on-sun);
+  box-shadow: var(--hard);
+}
+
+/* Message quand une liste est vide */
+.empty {
+  padding: 24px;
+  border: 2px dashed var(--muted);
+  border-radius: 18px;
+  background: var(--surface);
+  color: var(--muted);
+  font-weight: 500;
+  text-align: center;
+}
+
+/* ---------- Barre d'onglets ---------- */
+.tabbar {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  height: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px));
+  padding: 6px max(10px, env(safe-area-inset-right, 0px)) calc(6px + env(safe-area-inset-bottom, 0px)) max(10px, env(safe-area-inset-left, 0px));
+  border-top: 2px solid var(--border);
+  background: var(--surface);
+}
+.tabbar button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border: 2px solid transparent;
+  border-radius: 18px;
+  background: none;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+.tabbar button[aria-current="page"] {
+  background: var(--sun);
+  border-color: var(--shadow-ink);
+  color: var(--on-sun);
+}
+.tabbar svg { width: 23px; height: 23px; }
+
+/* ---------- Message (bas de l'écran) ---------- */
+.toast {
+  max-width: calc(100% - 48px);
+  padding: 10px 18px;
+  border: 2px solid var(--border);
+  border-radius: 22px;
+  background: var(--sun);
+  color: var(--on-sun);
+  box-shadow: var(--hard);
+  font-size: 14px;
+  font-weight: 800;
+  text-align: center;
+  transform: rotate(-2deg);
+}
+
+/* Piment de l'explosion des favoris */
+.burst {
+  position: fixed;
+  z-index: 30;
+  width: 22px;
+  height: 22px;
+  pointer-events: none;
+}
+
+/* Zone tactile invisible de 44 px de haut autour des petits boutons et liens
+   (étiquettes d'origine, liens vers une recette, liens de l'écran À propos) */
+.origin button::after,
+.ing-link::after,
+.zone-tactile::after {
+  content: "";
+  position: absolute;
+  inset: 50% 0 auto 0;
+  height: 44px;
+  transform: translateY(-50%);
+}

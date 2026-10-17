@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Icône de l'application : le globe de l'accueil, style « affiche » (fond menthe, contour à l'encre, ombre dure).
+       Le dessin tient dans le cercle central de 80 % : il convient aussi aux icônes « maskable » d'Android. -->
+  <rect width="512" height="512" fill="#4FE0A2"/>
+  <circle cx="274" cy="278" r="156" fill="#1B1410"/>
+  <circle cx="256" cy="256" r="156" fill="#4C8DF6"/>
+  <g fill="none" stroke="#FFFFFF" stroke-opacity=".35" stroke-width="5">
+    <ellipse cx="256" cy="256" rx="70" ry="156"/>
+    <path d="M100 256h312M120 180h272M120 332h272"/>
+  </g>
+  <!-- Terres (crème) -->
+  <path d="M130 196c22-34 64-50 104-46 14 22 6 46-14 58-6 30-34 40-60 30-14-12-24-24-30-42z" fill="#FFF6E5" stroke="#1B1410" stroke-width="7" stroke-linejoin="round"/>
+  <path d="M168 300c26-8 50 4 58 28-2 30-20 56-42 66-18-24-26-60-16-94z" fill="#FFF6E5" stroke="#1B1410" stroke-width="7" stroke-linejoin="round"/>
+  <!-- Pays disponibles : rouge, safran, rose, avec le contour menthe des pays à explorer -->
+  <path d="M262 152c44-6 98 10 124 48-4 40-40 60-76 56-28 14-56 2-64-26-6-32-2-62 16-78z" fill="#B8322A" stroke="#4FE0A2" stroke-width="10" stroke-linejoin="round"/>
+  <path d="M244 270c34-12 66 6 74 40-6 36-28 62-54 74-20-28-30-74-20-114z" fill="#F28C28" stroke="#1B1410" stroke-width="7" stroke-linejoin="round"/>
+  <path d="M338 262c16 4 24 20 20 38-4 18 4 34-6 48-14-10-20-30-20-48-2-14 0-28 6-38z" fill="#E2557F" stroke="#1B1410" stroke-width="7" stroke-linejoin="round"/>
+  <circle cx="256" cy="256" r="156" fill="none" stroke="#1B1410" stroke-width="14"/>
+</svg>

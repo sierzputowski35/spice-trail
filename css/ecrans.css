@@ -1,0 +1,255 @@
+/* Placement des écrans : globe, carte, panneau, recette, recherche, favoris, à propos.
+   Aucune couleur écrite ici : uniquement les variables de css/tokens.css. */
+
+body { overflow: hidden; }
+
+/* ---------- Cadre de l'application ---------- */
+#app {
+  position: fixed;
+  inset: 0;
+  padding-top: env(safe-area-inset-top, 0px);
+  background: var(--bg);
+  transition: background .5s;
+}
+#app[data-view="globe"] { background: var(--home); }
+#app:not([data-view="globe"]) { background: var(--country-bg); }
+
+#stage {
+  position: absolute;
+  inset: 0;
+  bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px));
+  overflow: hidden;
+  touch-action: none;
+}
+#stage .couche {
+  position: absolute;
+  inset: 0;
+}
+#stage svg {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  transition: opacity .45s ease;
+}
+#stage svg.fade { opacity: 0; pointer-events: none; }
+
+/* ---------- Globe ---------- */
+.globe-shadow { fill: var(--shadow-ink); }
+.sphere { fill: var(--ocean); stroke: var(--shadow-ink); stroke-width: 3; }
+.grat { fill: none; stroke: var(--ocean-line); stroke-width: .8; }
+.country {
+  fill: var(--land-soon);
+  stroke: var(--ocean);
+  stroke-width: .6;
+  cursor: pointer;
+}
+.globe-cible { fill: transparent; cursor: pointer; }
+.country.has {
+  stroke: var(--sun);
+  animation: pulse 1.8s ease-in-out infinite;
+}
+.country.has:focus { outline: none; }
+.country.has:focus-visible { stroke: var(--shadow-ink); stroke-width: 3; animation: none; }
+/* Drapeau au survol ou au toucher */
+.country.flagged {
+  stroke: var(--shadow-ink);
+  stroke-width: 2.5;
+  animation: none;
+}
+
+/* ---------- Carte du pays ---------- */
+.m-country {
+  fill: var(--country-shade);
+  stroke: var(--country-bg);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+.m-prov {
+  fill: var(--country-land);
+  stroke: var(--country-bg);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+  cursor: pointer;
+}
+.m-reg {
+  fill: var(--surface);
+  stroke: var(--shadow-ink);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+  cursor: pointer;
+  transition: fill .2s;
+}
+.m-reg:hover,
+.m-reg:focus-visible {
+  fill: color-mix(in srgb, var(--sun) 60%, var(--surface));
+  outline: none;
+}
+.m-reg.sel { fill: var(--sun); }
+.m-reg.dim { fill: color-mix(in srgb, var(--surface) 55%, var(--country-land)); }
+.m-label {
+  fill: var(--map-ink);
+  font-family: var(--font-display);
+  font-weight: 700;
+  paint-order: stroke;
+  stroke: var(--map-halo);
+  stroke-linejoin: round;
+  pointer-events: none;
+  transition: opacity .3s;
+}
+.m-cible { fill: transparent; cursor: pointer; }
+.m-city { cursor: pointer; }
+.m-city:focus { outline: none; }
+.m-city .m-hit { fill: transparent; }
+.m-city .m-dot {
+  fill: var(--map-ink);
+  stroke: var(--map-halo);
+  stroke-width: 3;
+  vector-effect: non-scaling-stroke;
+}
+.m-city.on .m-dot { fill: var(--accent-l); }
+.m-city.soon .m-dot {
+  fill: var(--map-halo);
+  stroke: var(--map-ink);
+  stroke-dasharray: 3 2;
+}
+.m-city:focus-visible .m-dot { stroke: var(--sun); stroke-width: 5; }
+.m-city text {
+  fill: var(--map-ink);
+  font-family: var(--font-display);
+  font-weight: 700;
+  paint-order: stroke;
+  stroke: var(--map-halo);
+  stroke-linejoin: round;
+}
+
+/* ---------- Bandeau du haut (retour, fil d'Ariane) ---------- */
+#topbar {
+  position: absolute;
+  z-index: 5;
+  top: calc(env(safe-area-inset-top, 0px) + 12px);
+  left: max(16px, env(safe-area-inset-left, 0px));
+  right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+}
+#topbar > * { pointer-events: auto; }
+#topbar .crumbs { flex: 0 1 auto; }
+#topbar .spacer { flex: 1; }
+
+/* ---------- Accueil : titre et légende ---------- */
+#intro {
+  position: absolute;
+  z-index: 4;
+  top: calc(env(safe-area-inset-top, 0px) + 18px);
+  left: max(20px, env(safe-area-inset-left, 0px));
+  right: max(76px, env(safe-area-inset-right, 0px));
+  pointer-events: none;
+}
+#intro h1 {
+  margin-top: 12px;
+  color: var(--fg);
+  font-size: clamp(44px, 13vw, 64px);
+  line-height: .92;
+}
+#intro p {
+  max-width: 28ch;
+  margin: 10px 0 0;
+  color: var(--fg);
+  font-weight: 500;
+}
+
+#legend {
+  position: absolute;
+  z-index: 4;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px) + 16px);
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  pointer-events: none;
+}
+#legend .dots { display: inline-flex; gap: 2px; }
+
+/* ---------- Panneau de fiche ---------- */
+#sheet {
+  position: absolute;
+  z-index: 6;
+  left: 0;
+  right: 0;
+  top: var(--sheet-top, 50%);
+  bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px));
+  transition: top .4s var(--spring), bottom .25s;
+}
+#sheet.dragging { transition: none; }
+#app.sheet-full #sheet { bottom: 0; }
+#app.sheet-full #tabbar { transform: translateY(110%); }
+.plus-texte { margin-top: 14px; }
+
+@media (min-width: 720px) {
+  #sheet {
+    left: max(16px, calc(50% - 360px));
+    right: max(16px, calc(50% - 360px));
+  }
+}
+
+/* ---------- Écrans plein cadre (recette, recherche, favoris, à propos) ---------- */
+.screen {
+  position: absolute;
+  z-index: 8;
+  inset: 0;
+  bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--bg);
+  animation: slideIn .35s var(--spring);
+}
+.screen-pad {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: calc(env(safe-area-inset-top, 0px) + 22px) max(20px, env(safe-area-inset-right, 0px)) 40px max(20px, env(safe-area-inset-left, 0px));
+}
+.screen h1:focus { outline: none; }
+.r-corps { padding-top: 4px; }
+.r-chips { margin-top: 14px; }
+.favoris-liste { margin-top: 18px; }
+.a-propos h2 { margin: 20px 0 8px; font-size: 20px; }
+.a-propos a {
+  position: relative;
+  color: var(--fg);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* ---------- Barre d'onglets ---------- */
+#tabbar {
+  position: absolute;
+  z-index: 9;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  transition: transform .25s;
+}
+
+/* ---------- Message ---------- */
+#toast {
+  position: absolute;
+  z-index: 20;
+  left: 50%;
+  bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px) + 60px);
+  width: max-content;
+  opacity: 0;
+  transform: translate(-50%, 20px) rotate(-2deg);
+  transition: opacity .25s, transform .35s var(--spring);
+  pointer-events: none;
+}
+#toast.on {
+  opacity: 1;
+  transform: translate(-50%, 0) rotate(-2deg);
+}

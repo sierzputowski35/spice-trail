@@ -1,0 +1,23 @@
+[
+  {
+    "code": "cn",
+    "nom": "Chine",
+    "couleur": "#B8322A",
+    "langue": "zh",
+    "fichier": "data/pays/cn.json"
+  },
+  {
+    "code": "in",
+    "nom": "Inde",
+    "couleur": "#F28C28",
+    "langue": "hi",
+    "fichier": "data/pays/in.json"
+  },
+  {
+    "code": "vn",
+    "nom": "Vietnam",
+    "couleur": "#E2557F",
+    "langue": "vi",
+    "fichier": "data/pays/vn.json"
+  }
+]
