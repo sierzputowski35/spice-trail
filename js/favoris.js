@@ -3,7 +3,7 @@
 // le temps de la visite, sans erreur.
 
 import { textes } from './textes.js';
-import { echapper, carteRecette, nomCourt, ICONE_SUITE } from './outils.js';
+import { echapper, carteRecette, nomLieu, ICONE_SUITE } from './outils.js';
 
 const CLE = 'favoris-v1';
 
@@ -62,8 +62,8 @@ export function creerEcranFavoris(conteneur, { chargerTout, surRecette, surLieu 
     const trouve = paysCharges.find(({ pays }) => pays.code === code);
     if (!trouve) return null;
     const { pays, contenus } = trouve;
-    if (ville) return contenus.villes[ville] ? { cle, nom: contenus.villes[ville].nom, sousTitre: textes.recherche.lieuVille(nomCourt(contenus.regions[region]?.nom), pays.nom) } : null;
-    if (region) return contenus.regions[region] ? { cle, nom: contenus.regions[region].nom, sousTitre: textes.recherche.lieuRegion(pays.nom) } : null;
+    if (ville) return contenus.villes[ville] ? { cle, nom: nomLieu(contenus.villes[ville]), sousTitre: textes.recherche.lieuVille(nomLieu(contenus.regions[region]), pays.nom) } : null;
+    if (region) return contenus.regions[region] ? { cle, nom: nomLieu(contenus.regions[region]), sousTitre: textes.recherche.lieuRegion(pays.nom) } : null;
     return { cle, nom: pays.nom, sousTitre: textes.recherche.lieuPays };
   }
 
@@ -92,7 +92,7 @@ export function creerEcranFavoris(conteneur, { chargerTout, surRecette, surLieu 
     if (recettes.length) html += `<p class="section-label">${t.recettes}</p><ul class="list">${recettes.map((e) => carteRecette(e.recette, e.pays)).join('')}</ul>`;
     if (lieux.length) {
       html += `<p class="section-label">${t.lieux}</p><ul class="list">${lieux.map((l) => `<li><button class="item" data-lieu="#/${echapper(l.cle)}">
-        <span class="min"><span class="t">${echapper(nomCourt(l.nom))}</span><br><span class="o">${echapper(l.sousTitre)}</span></span>
+        <span class="min"><span class="t">${echapper(l.nom)}</span><br><span class="o">${echapper(l.sousTitre)}</span></span>
         ${ICONE_SUITE}</button></li>`).join('')}</ul>`;
     }
     liste.innerHTML = html || `<p class="empty">${t.vide}</p>`;

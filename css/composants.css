@@ -288,14 +288,15 @@ button.item:hover { background: var(--surface-2); }
   border-radius: 14px;
   background: var(--accent-strong);
   color: var(--on-accent);
-  font-family: var(--font-cjk);
+  /* --font-origine : police du pays, donnée par js/polices.js */
+  font-family: var(--font-origine, var(--font-cjk));
   font-size: 23px;
   font-weight: 700;
   overflow: hidden;
 }
 .thumb.lat {
   padding: 0 4px;
-  font-family: var(--font-display);
+  font-family: var(--font-origine-titre, var(--font-display));
   font-size: 15px;
   font-weight: 800;
   line-height: 1.05;
@@ -378,7 +379,7 @@ button.item:hover { background: var(--surface-2); }
   top: calc(env(safe-area-inset-top, 0px) + 6px);
   right: -8px;
   color: var(--on-accent);
-  font-family: var(--font-cjk);
+  font-family: var(--font-origine, var(--font-cjk));
   font-size: min(150px, 34vw);
   font-weight: 700;
   line-height: 1;
@@ -390,7 +391,7 @@ button.item:hover { background: var(--surface-2); }
 .r-top .big.lat {
   right: auto;
   left: -4px;
-  font-family: var(--font-display);
+  font-family: var(--font-origine-titre, var(--font-display));
   font-size: min(120px, 28vw);
   font-weight: 800;
 }
@@ -509,6 +510,27 @@ button.item:hover { background: var(--surface-2); }
   font: 800 16px var(--font-display);
   font-variant-numeric: tabular-nums;
   text-align: center;
+}
+
+/* ---------- Encadré de sécurité alimentaire (jamais replié) ---------- */
+.alerte {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  border: 2px solid var(--border);
+  border-radius: 18px;
+  background: var(--alerte-fond);
+  color: var(--fg);
+  box-shadow: var(--hard);
+}
+.alerte svg { flex: none; width: 28px; height: 28px; margin-top: 2px; }
+.alerte p { margin: 0; }
+.alerte-titre {
+  font: 800 15px var(--font-display);
+  letter-spacing: .02em;
+  text-transform: uppercase;
 }
 
 /* ---------- Ingrédients ---------- */

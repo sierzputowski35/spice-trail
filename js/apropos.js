@@ -5,8 +5,8 @@ import { echapper } from './outils.js';
 
 const ICONE_FERMER = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
 
-/** options.surFermer() : bouton de fermeture */
-export function creerEcranAPropos(conteneur, { surFermer }) {
+/** options.surFermer() : bouton de fermeture ; options.listePays : pays disponibles */
+export function creerEcranAPropos(conteneur, { surFermer, listePays }) {
   const t = textes.aPropos;
   const mention = (m) => `<li><strong>${echapper(m.nom)}</strong> : ${echapper(m.texte)}${m.lien
     ? ` <a class="zone-tactile" href="${echapper(m.lien)}" target="_blank" rel="noopener" aria-label="${echapper(t.lienExterne(m.nom))}">${echapper(new URL(m.lien).hostname)}</a>`
@@ -27,7 +27,7 @@ export function creerEcranAPropos(conteneur, { surFermer }) {
           <h2>${t.cartesTitre}</h2>
           <p>${echapper(t.frontieres)}</p>
           <h2>${t.versionTitre}</h2>
-          <p>${echapper(t.version)}</p>
+          <p>${echapper(t.version(listePays.map((p) => p.nom)))}</p>
           <h2>${t.mentionsTitre}</h2>
           <ul>${t.mentions.map(mention).join('')}</ul>
         </div>

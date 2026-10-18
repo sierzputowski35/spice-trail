@@ -1,6 +1,9 @@
 // Chargement de la liste des pays (data/pays.json) et des fichiers pays, à la demande.
 // Chaque fichier n'est téléchargé qu'une fois par session, puis gardé en mémoire.
 
+import { chargerPolice } from './polices.js';
+import { annoterNomsCourts } from './outils.js';
+
 const memoire = new Map();
 
 function charger(chemin) {
@@ -25,8 +28,11 @@ export const chargerMonde = () => charger('data/geo/monde-110m.json');
 /** Table code ISO numérique → code à deux lettres (« 156 » → « CN ») */
 export const chargerCodesIso = () => charger('data/geo/codes-iso.json');
 
-/** Contenus d'un pays (fiches et recettes) */
-export const chargerPays = (pays) => charger(pays.fichier);
+/** Contenus d'un pays (fiches et recettes). Sa police d'écriture se charge en même temps. */
+export function chargerPays(pays) {
+  chargerPolice(pays);
+  return charger(pays.fichier).then(annoterNomsCourts);
+}
 
 /** Contours des régions culinaires d'un pays */
 export const chargerRegions = (code) => charger(`data/geo/regions/${code}.json`);

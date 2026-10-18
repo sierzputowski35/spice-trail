@@ -86,6 +86,7 @@ export const textes = {
     saison: (liste) => `Saison : ${liste}`,
     origine: 'Origine',
     ingredients: 'Ingrédients',
+    securite: 'Sécurité alimentaire',
     ustensiles: 'Ustensiles',
     etapes: 'Étapes',
     conseils: 'Conseils du chef',
@@ -144,7 +145,11 @@ export const textes = {
     cartesTitre: 'Cartes',
     frontieres: 'Les frontières affichées proviennent des données libres Natural Earth, qui représentent la situation de fait sur le terrain. Elles ne prennent pas position sur les territoires contestés.',
     versionTitre: 'Cette version',
-    version: 'Cette première version contient trois pays : la Chine, le Vietnam et l’Inde. Les autres pays sont signalés « Bientôt disponible ». Les favoris sont enregistrés uniquement sur cet appareil, sans compte.',
+    // noms : liste des pays disponibles (data/pays.json)
+    version: (noms) => {
+      const liste = noms.length > 1 ? `${noms.slice(0, -1).join(', ')} et ${noms[noms.length - 1]}` : noms.join('');
+      return `Cette version contient ${noms.length} pays : ${liste}. Les autres pays sont signalés « Bientôt disponible ». Les favoris sont enregistrés uniquement sur cet appareil, sans compte.`;
+    },
     mentionsTitre: 'Mentions et licences',
     mentions: [
       { nom: 'Données cartographiques', texte: 'Natural Earth, domaine public.', lien: 'https://www.naturalearthdata.com/' },

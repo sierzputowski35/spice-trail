@@ -1,7 +1,8 @@
 // Petits outils d'affichage partagés par les écrans (fiches, recettes, recherche, favoris).
 
 import { textes } from './textes.js';
-import { versionLisible } from './couleurs.js';
+import { versionLisible, versionSombre } from './couleurs.js';
+import { ecritDeDroiteAGauche } from './polices.js';
 
 /** Protège un texte avant de l'insérer dans du HTML. */
 export const echapper = (texte) => String(texte ?? '')
@@ -10,13 +11,32 @@ export const echapper = (texte) => String(texte ?? '')
 /** « Sichuan (avec Chongqing) » → « Sichuan » */
 export const nomCourt = (nom) => String(nom || '').replace(/\s*\(.*\)\s*/, '');
 
+/** Nom court d'un lieu (région, ville, pays), calculé par annoterNomsCourts() au chargement du pays. */
+export const nomLieu = (lieu) => lieu?.nom_court ?? nomCourt(lieu?.nom);
+
+/**
+ * Donne à chaque région et ville son nom court : sans la parenthèse (« Canton (Guangzhou) » → « Canton »),
+ * sauf si deux lieux du pays porteraient alors le même nom (« Jeju (ville) » et la région « Jeju »).
+ */
+export function annoterNomsCourts(contenus) {
+  const lieux = [...Object.values(contenus.regions || {}), ...Object.values(contenus.villes || {})];
+  const compte = new Map();
+  for (const l of lieux) compte.set(nomCourt(l.nom), (compte.get(nomCourt(l.nom)) || 0) + 1);
+  for (const l of lieux) l.nom_court = compte.get(nomCourt(l.nom)) > 1 ? l.nom : nomCourt(l.nom);
+  return contenus;
+}
+
 /** « 麻婆豆腐 (mápó dòufu) » → « 麻婆豆腐 » : le nom dans son écriture d'origine. */
 export const ecritureOrigine = (nom) => String(nom || '').split(' (')[0].trim();
 
 export const estCjk = (texte) => /[\u3400-\u9fff]/.test(texte);
 
-/** Attribut lang pour un nom d'origine (vide si la langue est inconnue). */
-export const attributLangue = (langue) => (langue ? ` lang="${echapper(langue)}"` : '');
+/**
+ * Attributs d'un nom d'origine : sa langue (lecteurs d'écran, police du pays)
+ * et, pour l'arabe, le sens de lecture de droite à gauche.
+ */
+export const attributLangue = (langue) => (langue
+  ? ` lang="${echapper(langue)}"${ecritDeDroiteAGauche(langue) ? ' dir="rtl"' : ''}` : '');
 
 /**
  * Photo d'une recette, seulement si l'expert cuisine l'a vérifiée (image_verifiee: true).
@@ -86,7 +106,7 @@ export const ICONE_SUITE = '<svg class="go" width="18" height="18" viewBox="0 0 
  * Attribut style qui donne à un élément la couleur de son pays (vignettes, piments),
  * pour les listes qui mélangent plusieurs pays (recherche, favoris).
  */
-export const teintePays = (pays) => ` data-teinte-pays style="--accent-l: ${echapper(pays.couleur)}; --accent-strong: ${versionLisible(pays.couleur)}"`;
+export const teintePays = (pays) => ` data-teinte-pays style="--accent-l: ${echapper(pays.couleur)}; --accent-strong: ${versionLisible(pays.couleur)}; --accent-d: ${versionSombre(pays.couleur)}"`;
 
 /** Carte d'une recette dans une liste : vignette, nom, nom d'origine, difficulté, durée, piquant. */
 export const carteRecette = (r, pays) => `<li${teintePays(pays)} data-pays="${echapper(pays.code)}"><button class="item" data-recette="${echapper(r.id)}">

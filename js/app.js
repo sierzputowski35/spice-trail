@@ -10,7 +10,7 @@ import { creerEcranRecette } from './recette.js';
 import { creerEcranRecherche } from './recherche.js';
 import { creerEcranFavoris } from './favoris.js';
 import { creerEcranAPropos } from './apropos.js';
-import { remplacerImagesManquantes, nomCourt } from './outils.js';
+import { remplacerImagesManquantes, nomLieu } from './outils.js';
 
 const $ = (selecteur) => document.querySelector(selecteur);
 
@@ -98,8 +98,8 @@ function afficherBandeau() {
   if (!surCarte) return;
 
   const niveaux = [['globe', textes.navigation.monde], ['pays', etat.pays.nom]];
-  if (etat.region) niveaux.push(['region', nomCourt(etat.contenus.regions[etat.region].nom)]);
-  if (etat.ville) niveaux.push(['ville', nomCourt(etat.contenus.villes[etat.ville].nom)]);
+  if (etat.region) niveaux.push(['region', nomLieu(etat.contenus.regions[etat.region])]);
+  if (etat.ville) niveaux.push(['ville', nomLieu(etat.contenus.villes[etat.ville])]);
   $('#crumbs').innerHTML = niveaux.map(([niveau, nom], i) => (i === niveaux.length - 1
     ? `<span aria-current="page">${echapper(nom)}</span>`
     : `<button data-niveau="${niveau}">${echapper(nom)}</button><span class="sep" aria-hidden="true">›</span>`)).join('');
@@ -168,8 +168,8 @@ function mettreAJourTitre() {
     return;
   }
   const morceaux = [];
-  if (etat.ville) morceaux.push(nomCourt(etat.contenus.villes[etat.ville].nom));
-  if (etat.region) morceaux.push(nomCourt(etat.contenus.regions[etat.region].nom));
+  if (etat.ville) morceaux.push(nomLieu(etat.contenus.villes[etat.ville]));
+  if (etat.region) morceaux.push(nomLieu(etat.contenus.regions[etat.region]));
   if (etat.pays) morceaux.push(etat.pays.nom);
   morceaux.push(textes.nomApplication);
   document.title = morceaux.join(' · ');
@@ -444,7 +444,7 @@ async function demarrer() {
     };
     listes['a-propos'] = {
       titre: textes.aPropos.titre,
-      ecran: creerEcranAPropos($('#app'), { surFermer: fermerAPropos }),
+      ecran: creerEcranAPropos($('#app'), { surFermer: fermerAPropos, listePays }),
     };
     ecranRecette = creerEcranRecette($('#app'), {
       surLieu: (niveau) => naviguer(adresseOrigine(niveau)),

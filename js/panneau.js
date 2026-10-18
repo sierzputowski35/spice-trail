@@ -2,8 +2,9 @@
 // onglets Histoire, Plats, Produits, Recettes, favori du lieu.
 
 import { textes } from './textes.js';
-import { echapper, attributLangue, vignette, photoVerifiee, carteRecette, nomCourt } from './outils.js';
+import { echapper, attributLangue, vignette, photoVerifiee, carteRecette, nomLieu } from './outils.js';
 import { cleLieu, estFavori, basculerFavori } from './favoris.js';
+import { ecritDeDroiteAGauche } from './polices.js';
 import { exploserPiments } from './animations.js';
 
 const ONGLETS = ['histoire', 'plats', 'produits', 'recettes'];
@@ -215,7 +216,7 @@ export function creerPanneau(conteneur, { scene, surRecette, surMessage }) {
 
   const boutonFavori = $('#fiche-favori');
   function afficherFavori() {
-    const nom = nomCourt(lieu().nom);
+    const nom = nomLieu(lieu());
     const actif = estFavori('lieux', cleFavori());
     boutonFavori.setAttribute('aria-pressed', actif);
     boutonFavori.setAttribute('aria-label', actif ? textes.favoris.retirerLieu(nom) : textes.favoris.ajouterLieu(nom));
@@ -237,12 +238,14 @@ export function creerPanneau(conteneur, { scene, surRecette, surMessage }) {
     const l = lieu();
 
     $('#fiche-etiquette').textContent = fiche.niveau === 'ville'
-      ? t.etiquetteVille(nomCourt(fiche.contenus.regions[fiche.region].nom))
+      ? t.etiquetteVille(nomLieu(fiche.contenus.regions[fiche.region]))
       : fiche.niveau === 'region' ? t.etiquetteRegion : t.etiquettePays;
-    $('#fiche-titre').textContent = nomCourt(l.nom);
+    $('#fiche-titre').textContent = nomLieu(l);
     const local = $('#fiche-local');
     local.textContent = l.nom_local || '';
     if (langue()) local.lang = langue();
+    if (ecritDeDroiteAGauche(langue())) local.dir = 'rtl';
+    else local.removeAttribute('dir');
     afficherFavori();
 
     const etaitCache = panneau.hidden;

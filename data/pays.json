@@ -4,14 +4,40 @@
     "nom": "Chine",
     "couleur": "#B8322A",
     "langue": "zh",
+    "police": "Noto Sans SC",
     "fichier": "data/pays/cn.json"
+  },
+  {
+    "code": "kr",
+    "nom": "Corée du Sud",
+    "couleur": "#2E8B87",
+    "langue": "ko",
+    "police": "Noto Sans KR",
+    "fichier": "data/pays/kr.json"
   },
   {
     "code": "in",
     "nom": "Inde",
     "couleur": "#F28C28",
     "langue": "hi",
+    "police": "Noto Sans Devanagari",
     "fichier": "data/pays/in.json"
+  },
+  {
+    "code": "jp",
+    "nom": "Japon",
+    "couleur": "#2E3F8F",
+    "langue": "ja",
+    "police": "Noto Sans JP",
+    "fichier": "data/pays/jp.json"
+  },
+  {
+    "code": "th",
+    "nom": "Thaïlande",
+    "couleur": "#7B3FA0",
+    "langue": "th",
+    "police": "Noto Sans Thai",
+    "fichier": "data/pays/th.json"
   },
   {
     "code": "vn",

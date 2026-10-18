@@ -2,7 +2,7 @@
 // Sans tenir compte des accents ni des majuscules. Filtres combinables sur les recettes.
 
 import { textes } from './textes.js';
-import { echapper, attributLangue, carteRecette, dureeTotale, teintePays, ICONE_SUITE, nomCourt } from './outils.js';
+import { echapper, attributLangue, carteRecette, dureeTotale, teintePays, ICONE_SUITE, nomLieu } from './outils.js';
 
 const ICONE_LOUPE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>';
 
@@ -41,7 +41,8 @@ export function construireIndex(paysCharges) {
     for (const r of Object.values(contenus.recettes)) {
       const region = contenus.regions[r.origine.region];
       const ville = contenus.villes[r.origine.ville];
-      const mots = [r.nom, r.nom_origine, pays.nom, region?.nom, ville?.nom, ...(r.ingredients || []).map((i) => i.nom)];
+      // transcription_officielle : non affichée, elle permet de trouver « phat thai » comme « pad thai »
+      const mots = [r.nom, r.nom_origine, r.transcription_officielle, pays.nom, region?.nom, ville?.nom, ...(r.ingredients || []).map((i) => i.nom)];
       recettes.push({ recette: r, pays, texte: normaliser(mots.join(' | ')) });
     }
 
@@ -116,9 +117,9 @@ export function creerEcranRecherche(conteneur, { chargerTout, adresseLieu, surRe
     const regionDeVille = e.niveau === 'ville' ? e.contenus.regions[e.lieu.region] : null;
     const sousTitre = e.niveau === 'pays' ? t.lieuPays
       : e.niveau === 'region' ? t.lieuRegion(e.pays.nom)
-        : t.lieuVille(nomCourt(regionDeVille?.nom), e.pays.nom);
+        : t.lieuVille(nomLieu(regionDeVille), e.pays.nom);
     return `<li><button class="item" data-lieu="${echapper(adresseLieu(e))}">
-      <span class="min"><span class="t">${echapper(nomCourt(e.lieu.nom))}</span><br><span class="o">${echapper(sousTitre)}</span></span>
+      <span class="min"><span class="t">${echapper(nomLieu(e.lieu))}</span><br><span class="o">${echapper(sousTitre)}</span></span>
       ${ICONE_SUITE}</button></li>`;
   }
 

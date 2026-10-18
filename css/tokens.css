@@ -37,6 +37,7 @@
   --map-ink: #1B1410;      /* noms et points sur la carte */
   --map-halo: #FFFFFF;
   --hot-soft: #FFE3DD;     /* puce « piquant » */
+  --alerte-fond: #FFE08A;  /* encadré de sécurité alimentaire */
   --veil-top: rgba(20, 12, 8, .6);       /* voile sur le drapeau des recettes */
   --veil-bottom: rgba(20, 12, 8, .68);
   --title-shadow: rgba(0, 0, 0, .45);
@@ -77,7 +78,7 @@
 /* Élément qui porte la couleur d'un autre pays (listes de recherche ou de favoris) :
    ses teintes sont recalculées à partir de son propre --accent-l. */
 [data-teinte-pays] {
-  --accent-d: color-mix(in srgb, var(--accent-l) 70%, #FFFFFF);
+  /* --accent-l, --accent-strong et --accent-d sont donnés par l'attribut style (js/outils.js) */
   --accent: var(--accent-l);
   --accent-text: var(--accent-strong);
 }
@@ -97,6 +98,7 @@
     --soft-line: #3A2E26;
     --border: #F7EBDD;
     --shadow-ink: #000000;
+    --alerte-fond: #4A3608;
     --ocean: #2F64C4;
     --land: #F7EBDD;
     --land-soon: #F7EBDD;
@@ -129,6 +131,7 @@
   --soft-line: #3A2E26;
   --border: #F7EBDD;
   --shadow-ink: #000000;
+  --alerte-fond: #4A3608;
   --ocean: #2F64C4;
   --land: #F7EBDD;
   --land-soon: #F7EBDD;

@@ -2,7 +2,7 @@
 // Ce module dessine ; c'est app.js qui décide où l'on se trouve (pays, région, ville).
 
 import { textes } from './textes.js';
-import { nomCourt } from './outils.js';
+import { nomLieu } from './outils.js';
 
 const d3 = window.d3;
 const topojson = window.topojson;
@@ -27,6 +27,7 @@ export function creerCarte(svgElement, { monde, codes, zone, surRegion, surVille
   const svg = d3.select(svgElement).attr('role', 'group');
   const groupeZoom = svg.append('g');
   const coucheVoisins = groupeZoom.append('g');
+  const coucheEncart = groupeZoom.append('g').attr('aria-hidden', 'true');   // cadre des régions éloignées
   const coucheProvinces = groupeZoom.append('g');   // provinces sans fiche
   // Zones tactiles de 44 px autour du nom de chaque région, SOUS les régions :
   // elles n'attrapent que les touchers tombés à côté (mer, provinces sans fiche), jamais une autre région
@@ -37,6 +38,12 @@ export function creerCarte(svgElement, { monde, codes, zone, surRegion, surVille
 
   const projection = d3.geoMercator();
   const chemin = d3.geoPath(projection);
+  // Régions très éloignées (Okinawa) : leur propre projection, dans un encart en bas à gauche
+  const projectionEncart = d3.geoMercator();
+  const cheminEncart = d3.geoPath(projectionEncart);
+  const estEnEncart = (f) => Boolean(f?.properties.encart);
+  const cheminDe = (f) => (estEnEncart(f) ? cheminEncart : chemin);
+  let encarts = [];
 
   let contenus = null;          // fiches du pays (data/pays/<code>.json)
   let regions = [];             // contours des régions (et « autre »)
@@ -45,8 +52,8 @@ export function creerCarte(svgElement, { monde, codes, zone, surRegion, surVille
   let echelle = 1;
 
   const aUneFiche = (f) => f.properties.r !== 'autre' && contenus.regions[f.properties.r];
-  const nomRegion = (id) => nomCourt(contenus.regions[id].nom);
-  const nomVille = (v) => (contenus.villes[v.id] ? nomCourt(contenus.villes[v.id].nom) : v.nom || nomDepuisIdentifiant(v.id));
+  const nomRegion = (id) => nomLieu(contenus.regions[id]);
+  const nomVille = (v) => (contenus.villes[v.id] ? nomLieu(contenus.villes[v.id]) : v.nom || nomDepuisIdentifiant(v.id));
 
   function activerAuClavier(selection, action) {
     selection
@@ -74,7 +81,8 @@ export function creerCarte(svgElement, { monde, codes, zone, surRegion, surVille
   function chargerPays(pays, donneesPays, topoRegions, codeNumerique) {
     contenus = donneesPays;
     regions = topojson.feature(topoRegions, topoRegions.objects.regions).features;
-    toutesRegions = { type: 'FeatureCollection', features: regions };
+    encarts = regions.filter(estEnEncart);
+    toutesRegions = { type: 'FeatureCollection', features: regions.filter((f) => !estEnEncart(f)) };
     etat = { region: null, ville: null };
     svg.attr('aria-label', textes.carte.description(pays.nom));
 
@@ -117,21 +125,46 @@ export function creerCarte(svgElement, { monde, codes, zone, surRegion, surVille
     if (!contenus) return;
     const z = zone();
     projection.fitExtent([[z.x0, z.y0], [z.x1, z.y1]], toutesRegions);
+    // Encart : environ un tiers de la largeur, dans le coin de la carte le plus libre
+    // (en bas à gauche de préférence, comme sur les cartes japonaises)
+    const cadre = encarts.length ? coinLibre(z, (z.x1 - z.x0) * 0.32, (z.y1 - z.y0) * 0.26) : null;
+    if (cadre) projectionEncart.fitExtent([[cadre.x + 10, cadre.y + 10], [cadre.x + cadre.l - 10, cadre.y + cadre.h - 10]], { type: 'FeatureCollection', features: encarts });
+    coucheEncart.selectAll('rect').data(cadre ? [cadre] : []).join('rect')
+      .attr('class', 'm-encart')
+      .attr('x', (c) => c.x).attr('y', (c) => c.y).attr('width', (c) => c.l).attr('height', (c) => c.h)
+      .attr('rx', 10);
     coucheVoisins.selectAll('path').attr('d', chemin);
-    coucheProvinces.selectAll('path').attr('d', chemin);
-    coucheRegions.selectAll('path').attr('d', chemin);
+    coucheProvinces.selectAll('path').attr('d', (f) => cheminDe(f)(f));
+    coucheRegions.selectAll('path').attr('d', (f) => cheminDe(f)(f));
     coucheCibles.selectAll('circle').each(function (f) {
-      const [x, y] = chemin.centroid(f);
+      const [x, y] = cheminDe(f).centroid(f);
       const { dx = 0, dy = 0 } = f.properties;
       this.setAttribute('cx', x + dx);
       this.setAttribute('cy', y + dy);
     });
     coucheNoms.selectAll('text').attr('transform', (f) => {
-      const [x, y] = chemin.centroid(f);
+      const [x, y] = cheminDe(f).centroid(f);
       const { dx = 0, dy = 0 } = f.properties;
       return `translate(${x + dx},${y + 4 + dy})`;
     });
     afficher(etat, false);
+  }
+
+  /** Coin de la zone qui recouvre le moins de terres du pays (points des contours projetés). */
+  function coinLibre(z, l, h) {
+    const coins = [
+      { x: z.x0 + 4, y: z.y1 - h },          // bas gauche (préféré)
+      { x: z.x0 + 4, y: z.y0 },              // haut gauche
+      { x: z.x1 - l - 4, y: z.y1 - h },      // bas droite
+      { x: z.x1 - l - 4, y: z.y0 },          // haut droite
+    ];
+    const points = [];
+    for (const f of toutesRegions.features) {
+      d3.geoStream(f, projection.stream({ point: (x, y) => points.push([x, y]), lineStart() {}, lineEnd() {}, polygonStart() {}, polygonEnd() {}, sphere() {} }));
+    }
+    const recouvrement = (c) => points.filter(([x, y]) => x >= c.x && x <= c.x + l && y >= c.y && y <= c.y + h).length;
+    const meilleur = coins.reduce((m, c) => (recouvrement(c) < recouvrement(m) ? c : m));
+    return { ...meilleur, l, h };
   }
 
   /** Montre le pays entier, une région (zoom) ou une ville (dans sa région). */
@@ -143,7 +176,7 @@ export function creerCarte(svgElement, { monde, codes, zone, surRegion, surVille
     const cible = etat.region && regions.find((f) => f.properties.r === etat.region);
     if (cible) {
       const z = zone();
-      const [[x0, y0], [x1, y1]] = chemin.bounds(cible);
+      const [[x0, y0], [x1, y1]] = cheminDe(cible).bounds(cible);
       k = Math.min(ZOOM_MAX, 0.8 * Math.min((z.x1 - z.x0) / (x1 - x0), (z.y1 - z.y0) / (y1 - y0)));
       tx = (z.x0 + z.x1) / 2 - k * (x0 + x1) / 2;
       ty = (z.y0 + z.y1) / 2 - k * (y0 + y1) / 2;
@@ -170,6 +203,8 @@ export function creerCarte(svgElement, { monde, codes, zone, surRegion, surVille
 
   function dessinerVilles() {
     const villes = etat.region ? contenus.regions[etat.region].villes || [] : [];
+    // Les villes d'une région en encart se placent dans l'encart
+    const projectionVilles = estEnEncart(regions.find((f) => f.properties.r === etat.region)) ? projectionEncart : projection;
     const groupes = coucheVilles.selectAll('g.m-city')
       .data(villes, (v) => v.id)
       .join((entree) => {
@@ -185,7 +220,7 @@ export function creerCarte(svgElement, { monde, codes, zone, surRegion, surVille
       .classed('on', (v) => v.id === etat.ville)
       .attr('aria-label', (v) => (contenus.villes[v.id] ? nomVille(v) : textes.carte.villeSansFiche(nomVille(v))))
       .attr('aria-current', (v) => (v.id === etat.ville ? 'location' : null))
-      .attr('transform', (v) => `translate(${projection(v.point).join(',')})`)
+      .attr('transform', (v) => `translate(${projectionVilles(v.point).join(',')})`)
       .on('click', (evenement, v) => toucherVille(v))
       .call(activerAuClavier, toucherVille);
     groupes.select('.m-hit').attr('r', 22 / echelle);

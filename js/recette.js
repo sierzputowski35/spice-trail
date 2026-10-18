@@ -3,11 +3,12 @@
 
 import { textes } from './textes.js';
 import { quantitePour } from './quantites.js';
-import { echapper, attributLangue, ecritureOrigine, estCjk, photoVerifiee, piments, duree, nomCourt } from './outils.js';
+import { echapper, attributLangue, ecritureOrigine, estCjk, photoVerifiee, piments, duree, nomLieu } from './outils.js';
 import { estFavori, basculerFavori } from './favoris.js';
 import { exploserPiments } from './animations.js';
 
 const ICONES = {
+  alerte: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5 2.5 20h19L12 3.5z"/><path d="M12 10v4.5M12 17.2v.3"/></svg>',
   retour: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>',
   favori: '<svg viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>',
   moins: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"/></svg>',
@@ -26,6 +27,13 @@ export function dureeEnSecondes(texte) {
   const heuresMinutes = String(texte).match(/(\d+)\s*h\s*(\d+)\s*$/);
   if (heuresMinutes) total += parseInt(heuresMinutes[2], 10) * 60;
   return Math.round(total);
+}
+
+/** Durée d'un minuteur, avec les temps longs en heures : « 90 min » → « 1 h 30 », « 720 min » → « 12 h ». */
+export function libelleDuree(texte) {
+  const secondes = dureeEnSecondes(texte);
+  if (secondes < 3600 || secondes % 60) return String(texte);
+  return duree(secondes / 60);
 }
 
 /** 125 → « 2:05 » ; 3725 → « 1 h 02:05 » */
@@ -63,8 +71,8 @@ export function creerEcranRecette(conteneur, { surLieu, surRetour, surRecette, s
     const lang = attributLangue(pays.langue);
     const ecriture = ecritureOrigine(r.nom_origine);
     const origine = [];
-    if (r.origine.ville && contenus.villes[r.origine.ville]) origine.push(['ville', nomCourt(contenus.villes[r.origine.ville].nom)]);
-    if (r.origine.region && contenus.regions[r.origine.region]) origine.push(['region', nomCourt(contenus.regions[r.origine.region].nom)]);
+    if (r.origine.ville && contenus.villes[r.origine.ville]) origine.push(['ville', nomLieu(contenus.villes[r.origine.ville])]);
+    if (r.origine.region && contenus.regions[r.origine.region]) origine.push(['region', nomLieu(contenus.regions[r.origine.region])]);
     origine.push(['pays', pays.nom]);
     const favori = estFavori('recettes', r.id);
     // Adresse complète : dans une variable CSS, un chemin relatif serait lu depuis le dossier css/
@@ -125,6 +133,8 @@ export function creerEcranRecette(conteneur, { surLieu, surRetour, surRecette, s
             <button class="plus" data-action="plus" aria-label="${t.plus}">${ICONES.plus}</button>
           </div>
         </div>
+        ${r.securite ? `<aside class="alerte" role="note" aria-labelledby="alerte-titre">${ICONES.alerte}
+          <div><p class="alerte-titre" id="alerte-titre">${t.securite}</p><p>${echapper(r.securite)}</p></div></aside>` : ''}
         ${groupes.map((g) => `<div class="ing">${g.nom ? `<h3>${echapper(g.nom)}</h3>` : ''}<ul>${g.lignes.map(ligne).join('')}</ul></div>`).join('')}
       </section>`;
   }
@@ -132,7 +142,7 @@ export function creerEcranRecette(conteneur, { surLieu, surRetour, surRecette, s
   function etapes() {
     const r = fiche.recette;
     return `<section class="r-sec"><h2>${t.etapes}</h2><ol class="steps">${r.etapes.map((e, n) => `<li><div>${e.texte}${e.minuteur
-      ? `<br><button class="timer" data-minuteur="${n}" data-duree="${echapper(e.minuteur)}" aria-pressed="false">${ICONES.minuteur}<span>${echapper(t.minuteur(e.minuteur))}</span></button>`
+      ? `<br><button class="timer" data-minuteur="${n}" data-duree="${echapper(e.minuteur)}" aria-pressed="false">${ICONES.minuteur}<span>${echapper(t.minuteur(libelleDuree(e.minuteur)))}</span></button>`
       : ''}</div></li>`).join('')}</ol></section>`;
   }
 
@@ -185,7 +195,7 @@ export function creerEcranRecette(conteneur, { surLieu, surRetour, surRecette, s
     bouton.classList.toggle('running', Boolean(m));
     bouton.setAttribute('aria-pressed', Boolean(m));
     if (m) libelle.textContent = compteARebours(Math.max(0, Math.round((m.fin - Date.now()) / 1000)));
-    else if (!bouton.dataset.fini) libelle.textContent = t.minuteur(bouton.dataset.duree);
+    else if (!bouton.dataset.fini) libelle.textContent = t.minuteur(libelleDuree(bouton.dataset.duree));
   }
 
   function basculerMinuteur(bouton) {
@@ -221,7 +231,7 @@ export function creerEcranRecette(conteneur, { surLieu, surRetour, surRecette, s
     }, 1000);
     minuteurs.set(cle, m);
     afficherMinuteur(bouton);
-    surMessage(t.minuteurLance(bouton.dataset.duree));
+    surMessage(t.minuteurLance(libelleDuree(bouton.dataset.duree)));
   }
 
   /* ---------- Actions ---------- */

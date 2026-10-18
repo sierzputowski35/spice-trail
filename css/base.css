@@ -72,6 +72,13 @@ p {
   font-family: var(--font-cjk);
 }
 
+/* Nom d'origine en arabe (écrit de droite à gauche) dans une interface en français :
+   il garde l'alignement du reste de la page */
+[dir="rtl"] {
+  text-align: left;
+  unicode-bidi: isolate;
+}
+
 /* Texte réservé aux lecteurs d'écran */
 .visually-hidden {
   position: absolute;

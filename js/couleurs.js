@@ -27,11 +27,44 @@ export function versionLisible(hex) {
   return versHex(rgb);
 }
 
+const contraste = (a, b) => {
+  const [x, y] = [luminance(a), luminance(b)].sort((m, n) => n - m);
+  return (x + 0.05) / (y + 0.05);
+};
+
+/** Fond clair le plus défavorable du thème sombre (--surface-2), lu dans css/tokens.css. */
+let fondSombre = null;
+function lireFondSombre() {
+  if (fondSombre || typeof document === 'undefined') return fondSombre;
+  const sonde = document.createElement('span');
+  sonde.dataset.theme = 'dark';
+  document.documentElement.append(sonde);
+  const valeur = getComputedStyle(sonde).getPropertyValue('--surface-2').trim();
+  sonde.remove();
+  if (/^#[0-9a-f]{6}$/i.test(valeur)) fondSombre = versRgb(valeur);
+  return fondSombre;
+}
+
+/**
+ * Version éclaircie pour le mode sombre (titres et liens colorés sur fond sombre) :
+ * 70 % de la couleur et 30 % de blanc, et davantage de blanc si c'est nécessaire
+ * pour atteindre 4,5:1 (couleurs très foncées comme l'indigo du Japon).
+ */
+export function versionSombre(hex) {
+  const couleur = versRgb(hex);
+  const fond = lireFondSombre();
+  const melange = (part) => couleur.map((v) => Math.round(v * (1 - part) + 255 * part));
+  let part = 0.3;
+  while (fond && part < 0.95 && contraste(melange(part), fond) < 4.5) part += 0.05;
+  return versHex(melange(part));
+}
+
 /** Applique la couleur d'un pays à toute la page. */
 export function appliquerCouleurPays(hex) {
   const style = document.documentElement.style;
   style.setProperty('--accent-l', hex);
   style.setProperty('--accent-strong', versionLisible(hex));
+  style.setProperty('--accent-d', versionSombre(hex));
 }
 
 /** Revient aux couleurs communes (globe, recherche…). */
@@ -39,6 +72,7 @@ export function retirerCouleurPays() {
   const style = document.documentElement.style;
   style.removeProperty('--accent-l');
   style.removeProperty('--accent-strong');
+  style.removeProperty('--accent-d');
 }
 
 /**

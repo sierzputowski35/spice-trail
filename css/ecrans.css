@@ -67,6 +67,12 @@ body { overflow: hidden; }
   stroke-width: 1;
   vector-effect: non-scaling-stroke;
 }
+.m-encart {
+  fill: var(--country-bg);
+  stroke: var(--map-ink);
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
 .m-prov {
   fill: var(--country-land);
   stroke: var(--country-bg);
