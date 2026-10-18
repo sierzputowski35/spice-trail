@@ -209,7 +209,9 @@ export function creerCarte(svgElement, { monde, codes, zone, surRegion, surVille
       .data(villes, (v) => v.id)
       .join((entree) => {
         const g = entree.append('g').attr('class', 'm-city');
-        g.append('circle').attr('class', 'm-hit').attr('data-cible-de', (v) => `ville-${v.id}`);   // zone tactile de 44 px, invisible
+        g.append('clipPath').attr('id', (v) => `zone-ville-${v.id}`).append('path');
+        g.append('circle').attr('class', 'm-hit').attr('data-cible-de', (v) => `ville-${v.id}`)   // zone tactile de 44 px, invisible
+          .attr('clip-path', (v) => `url(#zone-ville-${v.id})`);
         g.append('circle').attr('class', 'm-dot');
         g.append('text').attr('aria-hidden', 'true');
         return g;
@@ -226,11 +228,82 @@ export function creerCarte(svgElement, { monde, codes, zone, surRegion, surVille
     groupes.select('.m-hit').attr('r', 22 / echelle);
     groupes.select('.m-dot').attr('r', 7 / echelle);
     groupes.select('text')
-      .attr('x', 11 / echelle)
-      .attr('y', 4 / echelle)
       .style('font-size', `${13 / echelle}px`)
       .style('stroke-width', `${3 / echelle}px`)
       .text(nomVille);
+    separerVillesProches(groupes, villes, villes.map((v) => projectionVilles(v.point)));
+  }
+
+  /**
+   * Villes proches l'une de l'autre (Osaka et Kobe…) :
+   * - celles qui ont une fiche passent devant celles qui n'en ont pas ;
+   * - les zones tactiles se partagent : un toucher va à la ville la plus proche du doigt ;
+   * - chaque nom se place du côté libre du point (droite, gauche, dessus, dessous).
+   */
+  function separerVillesProches(groupes, villes, points) {
+    groupes.sort((a, b) => Boolean(contenus.villes[a.id]) - Boolean(contenus.villes[b.id]));
+    if (!points.length) return;
+
+    const k = echelle;
+    const indice = new Map(villes.map((v, i) => [v.id, i]));
+    const r = 23 / k;
+    groupes.each(function (v) {
+      const i = indice.get(v.id);
+      const [x, y] = points[i];
+      // Carré de la zone tactile, coupé à mi-chemin de chaque ville voisine
+      let zone = [[-r, -r], [r, -r], [r, r], [-r, r]];
+      points.forEach(([ax, ay], j) => {
+        if (j !== i) zone = garderCoteProche(zone, ax - x, ay - y);
+      });
+      d3.select(this).select('clipPath path')
+        .attr('d', zone.length ? `M${zone.map(([zx, zy]) => `${zx},${zy}`).join('L')}Z` : null);
+    });
+
+    // Placement des noms, villes à fiche d'abord
+    const rayonPoint = 9 / k;
+    const hauteur = 14 / k;
+    const positions = [
+      { ancre: 'start', x: 11 / k, y: 4 / k },
+      { ancre: 'end', x: -11 / k, y: 4 / k },
+      { ancre: 'middle', x: 0, y: -12 / k },
+      { ancre: 'middle', x: 0, y: 21 / k },
+    ];
+    const boite = ([px, py], p, largeur) => {
+      const x0 = p.ancre === 'start' ? px + p.x : p.ancre === 'end' ? px + p.x - largeur : px - largeur / 2;
+      return { x0, x1: x0 + largeur, y0: py + p.y - hauteur * 0.8, y1: py + p.y + hauteur * 0.2 };
+    };
+    const recouvre = (a, b) => Math.max(0, Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0)) * Math.max(0, Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0));
+    const obstacles = points.map(([x, y]) => ({ x0: x - rayonPoint, x1: x + rayonPoint, y0: y - rayonPoint, y1: y + rayonPoint }));
+    const ordre = groupes.nodes().slice().reverse();   // devant en premier
+    for (const noeud of ordre) {
+      const v = d3.select(noeud).datum();
+      const texte = noeud.querySelector('text');
+      const largeur = texte.getComputedTextLength() || 0;
+      const point = points[indice.get(v.id)];
+      const autres = obstacles.filter((o, j) => j !== indice.get(v.id));
+      const cout = (p) => autres.reduce((s, o) => s + recouvre(boite(point, p, largeur), o), 0);
+      const meilleure = positions.reduce((m, p) => (cout(p) < cout(m) - 1e-9 ? p : m));
+      texte.setAttribute('text-anchor', meilleure.ancre);
+      texte.setAttribute('x', meilleure.x);
+      texte.setAttribute('y', meilleure.y);
+      obstacles.push(boite(point, meilleure, largeur));
+    }
+  }
+
+  /** Garde la partie d'un polygone (autour de 0,0) plus proche de 0,0 que du point (ax, ay). */
+  function garderCoteProche(polygone, ax, ay) {
+    const c = (ax * ax + ay * ay) / 2;
+    const dedans = ([x, y]) => x * ax + y * ay <= c;
+    const resultat = [];
+    polygone.forEach((p, n) => {
+      const q = polygone[(n + 1) % polygone.length];
+      if (dedans(p)) resultat.push(p);
+      if (dedans(p) !== dedans(q)) {
+        const t = (c - (p[0] * ax + p[1] * ay)) / ((q[0] - p[0]) * ax + (q[1] - p[1]) * ay);
+        resultat.push([p[0] + t * (q[0] - p[0]), p[1] + t * (q[1] - p[1])]);
+      }
+    });
+    return resultat;
   }
 
   return { chargerPays, afficher, redimensionner };
