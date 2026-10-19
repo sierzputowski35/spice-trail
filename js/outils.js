@@ -2,7 +2,7 @@
 
 import { textes } from './textes.js';
 import { versionLisible, versionSombre } from './couleurs.js';
-import { ecritDeDroiteAGauche } from './polices.js';
+import { ecritDeDroiteAGauche, LANGUE_TIFINAGH } from './polices.js';
 
 /** Protège un texte avant de l'insérer dans du HTML. */
 export const echapper = (texte) => String(texte ?? '')
@@ -26,8 +26,8 @@ export function annoterNomsCourts(contenus) {
   return contenus;
 }
 
-/** « 麻婆豆腐 (mápó dòufu) » → « 麻婆豆腐 » : le nom dans son écriture d'origine. */
-export const ecritureOrigine = (nom) => String(nom || '').split(' (')[0].trim();
+/** « 麻婆豆腐 (mápó dòufu) » → « 麻婆豆腐 » ; « أملو · ⴰⵎⵍⵓ (amlou) » → « أملو » : le nom dans son écriture d'origine. */
+export const ecritureOrigine = (nom) => String(nom || '').split(' (')[0].split(' · ')[0].trim();
 
 export const estCjk = (texte) => /[\u3400-\u9fff]/.test(texte);
 
@@ -37,6 +37,53 @@ export const estCjk = (texte) => /[\u3400-\u9fff]/.test(texte);
  */
 export const attributLangue = (langue) => (langue
   ? ` lang="${echapper(langue)}"${ecritDeDroiteAGauche(langue) ? ' dir="rtl"' : ''}` : '');
+
+/** Langue d'un morceau de nom : le tifinagh (amazigh) se reconnaît à son écriture, le reste suit la langue donnée. */
+export const langueEcriture = (texte, langue) => (/[\u2d30-\u2d7f]/.test(texte) ? LANGUE_TIFINAGH : langue);
+
+/**
+ * Découpe un nom d'origine en morceaux : « أملو · ⴰⵎⵍⵓ (amlou) » →
+ * arabe (de droite à gauche), tifinagh, puis la transcription entre parenthèses.
+ */
+export function morceauxNom(nom, langue) {
+  const texte = String(nom ?? '').trim();
+  const parenthese = texte.match(/^(.*?)\s*\(([^()]*)\)$/);
+  const ecritures = (parenthese ? parenthese[1] : texte).split(/\s+·\s+/).filter(Boolean);
+  return {
+    ecritures: ecritures.map((e) => ({ texte: e, langue: langueEcriture(e, langue) })),
+    transcription: parenthese ? parenthese[2] : null,
+  };
+}
+
+/**
+ * Nom d'origine prêt à afficher, avec sa langue.
+ * Un nom qui mêle les sens d'écriture (arabe) ou les écritures (arabe et tifinagh) est découpé :
+ * chaque morceau porte sa propre langue et son sens, sinon l'ordre des mots s'inverse à l'écran.
+ * langueParentheses : langue du pays, quand celle du nom diffère (nahuatl au Mexique :
+ * « mōlli (mole poblano) » → « mōlli » en nahuatl, « mole poblano » en espagnol).
+ * Retourne { attributs, html } : les attributs vont sur l'élément qui contient le nom.
+ */
+export function nomOrigine(nom, langue, langueParentheses = langue) {
+  const texte = String(nom ?? '');
+  const autreLangue = langueParentheses && langueParentheses !== langue && texte.includes('(');
+  if (!ecritDeDroiteAGauche(langue) && !texte.includes(' · ') && !autreLangue) {
+    return { attributs: attributLangue(langue), html: echapper(texte) };
+  }
+  const { ecritures, transcription } = morceauxNom(texte, langue);
+  const langueFin = autreLangue ? langueParentheses : `${langue}-Latn`;
+  const html = ecritures.map((e) => `<span${attributLangue(e.langue)}>${echapper(e.texte)}</span>`).join(' · ')
+    + (transcription ? ` (<span${attributLangue(langueFin)}>${echapper(transcription)}</span>)` : '');
+  return { attributs: '', html };
+}
+
+/** Élément qui affiche un nom d'origine (classe « o » des listes et des en-têtes). */
+export function elementOrigine(nom, langue, balise = 'span', langueParentheses = langue) {
+  const o = nomOrigine(nom, langue, langueParentheses);
+  return `<${balise} class="o"${o.attributs}>${o.html}</${balise}>`;
+}
+
+/** Langue du nom d'une recette : son champ langue_nom (catalan, nahuatl…), sinon celle du pays. */
+export const langueRecette = (recette, pays) => recette?.langue_nom || pays?.langue;
 
 /**
  * Photo d'une recette, seulement si l'expert cuisine l'a vérifiée (image_verifiee: true).
@@ -57,6 +104,7 @@ function texteVignette(nomOrigine) {
  */
 export function vignette(nomOrigine, langue, photo = null) {
   const { texte, latin } = texteVignette(nomOrigine);
+  langue = langueEcriture(texte, langue);
   const classe = `thumb${latin ? ' lat' : ''}`;
   if (photo) {
     // Si la photo ne se charge pas, remplacerImagesManquantes() remet le texte de remplacement
@@ -90,10 +138,15 @@ export const piment = (plein) => `<svg viewBox="0 0 16 16" aria-hidden="true"><p
 /** Piquant de 0 à 3, en petits piments. */
 export const piments = (n) => `<span class="pepper" role="img" aria-label="${textes.recette.piquantSur3(n)}">${[1, 2, 3].map((i) => piment(i <= n)).join('')}</span>`;
 
-/** 75 → « 1 h 15 » ; 40 → « 40 min » */
+const JOUR = 24 * 60;
+const SEMAINE = 7 * JOUR;
+
+/** 75 → « 1 h 15 » ; 40 → « 40 min » ; 4320 → « 3 jours » ; 40320 → « 4 semaines » */
 export function duree(minutes) {
   if (!minutes) return textes.recette.dureeVide;
   if (minutes < 60) return `${minutes} min`;
+  if (minutes % SEMAINE === 0) return textes.recette.semaines(minutes / SEMAINE);
+  if (minutes >= 2 * JOUR && minutes % JOUR === 0) return textes.recette.jours(minutes / JOUR);
   const reste = minutes % 60;
   return `${Math.floor(minutes / 60)} h${reste ? ' ' + String(reste).padStart(2, '0') : ''}`;
 }
@@ -109,8 +162,11 @@ export const ICONE_SUITE = '<svg class="go" width="18" height="18" viewBox="0 0 
 export const teintePays = (pays) => ` data-teinte-pays style="--accent-l: ${echapper(pays.couleur)}; --accent-strong: ${versionLisible(pays.couleur)}; --accent-d: ${versionSombre(pays.couleur)}"`;
 
 /** Carte d'une recette dans une liste : vignette, nom, nom d'origine, difficulté, durée, piquant. */
-export const carteRecette = (r, pays) => `<li${teintePays(pays)} data-pays="${echapper(pays.code)}"><button class="item" data-recette="${echapper(r.id)}">
-    ${vignette(r.nom_origine, pays.langue, photoVerifiee(r))}
-    <span class="min"><span class="t">${echapper(r.nom)}</span><br><span class="o"${attributLangue(pays.langue)}>${echapper(r.nom_origine)}</span>
+export const carteRecette = (r, pays) => {
+  const langue = langueRecette(r, pays);
+  return `<li${teintePays(pays)} data-pays="${echapper(pays.code)}"><button class="item" data-recette="${echapper(r.id)}">
+    ${vignette(r.nom_origine, langue, photoVerifiee(r))}
+    <span class="min"><span class="t">${echapper(r.nom)}</span><br>${elementOrigine(r.nom_origine, langue, 'span', pays.langue)}
     <span class="chips"><span class="chip">${textes.recette.difficulte[r.difficulte] || ''}</span><span class="chip">${duree(dureeTotale(r))}</span>${r.piquant ? `<span class="chip hot">${piments(r.piquant)}</span>` : ''}</span></span>
     ${ICONE_SUITE}</button></li>`;
+};

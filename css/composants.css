@@ -74,6 +74,8 @@
   scrollbar-width: none;
 }
 .crumbs::-webkit-scrollbar { display: none; }
+/* Un fil trop long défile au lieu de tasser ses noms les uns sur les autres */
+.crumbs > * { flex: none; }
 .crumbs button {
   min-width: 44px;
   min-height: 44px;

@@ -16,6 +16,14 @@
     "fichier": "data/pays/kr.json"
   },
   {
+    "code": "es",
+    "nom": "Espagne",
+    "couleur": "#7D8A2E",
+    "langue": "es",
+    "police": "# vide : écriture latine, aucune police à charger",
+    "fichier": "data/pays/es.json"
+  },
+  {
     "code": "in",
     "nom": "Inde",
     "couleur": "#F28C28",
@@ -32,6 +40,33 @@
     "fichier": "data/pays/jp.json"
   },
   {
+    "code": "lb",
+    "nom": "Liban",
+    "couleur": "#9C1C3B",
+    "langue": "ar",
+    "police": "Noto Sans Arabic",
+    "fichier": "data/pays/lb.json"
+  },
+  {
+    "code": "ma",
+    "nom": "Maroc",
+    "couleur": "#C8652F",
+    "langue": "ar",
+    "police": [
+      "Noto Sans Arabic",
+      "Noto Sans Tifinagh"
+    ],
+    "fichier": "data/pays/ma.json"
+  },
+  {
+    "code": "mx",
+    "nom": "Mexique",
+    "couleur": "#D10F73",
+    "langue": "es",
+    "police": "# vide : écriture latine, aucune police à charger",
+    "fichier": "data/pays/mx.json"
+  },
+  {
     "code": "th",
     "nom": "Thaïlande",
     "couleur": "#7B3FA0",
@@ -40,10 +75,26 @@
     "fichier": "data/pays/th.json"
   },
   {
+    "code": "tn",
+    "nom": "Tunisie",
+    "couleur": "#1F6FB8",
+    "langue": "ar",
+    "police": "Noto Sans Arabic",
+    "fichier": "data/pays/tn.json"
+  },
+  {
     "code": "vn",
     "nom": "Vietnam",
     "couleur": "#E2557F",
     "langue": "vi",
     "fichier": "data/pays/vn.json"
+  },
+  {
+    "code": "us",
+    "nom": "États-Unis",
+    "couleur": "#E0A400",
+    "langue": "en",
+    "police": "# vide : écriture latine, aucune police à charger",
+    "fichier": "data/pays/us.json"
   }
 ]

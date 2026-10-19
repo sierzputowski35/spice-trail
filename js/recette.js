@@ -3,7 +3,7 @@
 
 import { textes } from './textes.js';
 import { quantitePour } from './quantites.js';
-import { echapper, attributLangue, ecritureOrigine, estCjk, photoVerifiee, piments, duree, nomLieu } from './outils.js';
+import { echapper, attributLangue, elementOrigine, ecritureOrigine, langueEcriture, langueRecette, estCjk, photoVerifiee, piments, duree, nomLieu } from './outils.js';
 import { estFavori, basculerFavori } from './favoris.js';
 import { exploserPiments } from './animations.js';
 
@@ -68,8 +68,9 @@ export function creerEcranRecette(conteneur, { surLieu, surRetour, surRecette, s
 
   function enTete() {
     const { pays, contenus, recette: r } = fiche;
-    const lang = attributLangue(pays.langue);
+    const langue = langueRecette(r, pays);
     const ecriture = ecritureOrigine(r.nom_origine);
+    const lang = attributLangue(langueEcriture(ecriture, langue));
     const origine = [];
     if (r.origine.ville && contenus.villes[r.origine.ville]) origine.push(['ville', nomLieu(contenus.villes[r.origine.ville])]);
     if (r.origine.region && contenus.regions[r.origine.region]) origine.push(['region', nomLieu(contenus.regions[r.origine.region])]);
@@ -85,7 +86,7 @@ export function creerEcranRecette(conteneur, { surLieu, surRetour, surRecette, s
           aria-label="${echapper(favori ? t.retirerFavori(r.nom) : t.ajouterFavori(r.nom))}">${ICONES.favori}</button>
         <nav class="origin" aria-label="${t.origine}">${origine.map(([niveau, nom]) => `<button data-lieu="${niveau}">${echapper(nom)}</button>`).join('')}</nav>
         <h1 tabindex="-1">${echapper(r.nom)}</h1>
-        <div class="o"${lang}>${echapper(r.nom_origine)}</div>
+        ${elementOrigine(r.nom_origine, langue, 'div', pays.langue)}
       </header>`;
   }
 

@@ -2,7 +2,7 @@
 // Sans tenir compte des accents ni des majuscules. Filtres combinables sur les recettes.
 
 import { textes } from './textes.js';
-import { echapper, attributLangue, carteRecette, dureeTotale, teintePays, ICONE_SUITE, nomLieu } from './outils.js';
+import { echapper, elementOrigine, carteRecette, dureeTotale, teintePays, ICONE_SUITE, nomLieu } from './outils.js';
 
 const ICONE_LOUPE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>';
 
@@ -125,7 +125,7 @@ export function creerEcranRecherche(conteneur, { chargerTout, adresseLieu, surRe
 
   const produitHtml = ({ produit, pays }) => `<li${teintePays(pays)}><div class="item"><span class="min">
       <span class="t">${echapper(produit.nom)}</span>${produit.label ? `<span class="badge">${echapper(produit.label)}</span>` : ''}<br>
-      <span class="o"${attributLangue(pays.langue)}>${echapper(produit.nom_origine || '')}</span>
+      ${elementOrigine(produit.nom_origine || '', pays.langue)}
       <span class="d">${echapper(produit.description)}</span></span></div></li>`;
 
   function afficherResultats() {

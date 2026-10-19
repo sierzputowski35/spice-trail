@@ -12,6 +12,17 @@ const ZOOM_MAX = 6;
 
 const mouvementReduit = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+/**
+ * Projection de la carte d'un pays, d'après data/geo/regions/<code>.json :
+ * Mercator par défaut, conique (Albers) pour un grand pays comme les États-Unis.
+ */
+function creerProjection(reglages) {
+  if (reglages?.type === 'conique') {
+    return d3.geoConicEqualArea().parallels(reglages.paralleles).rotate(reglages.rotation || [0, 0]);
+  }
+  return d3.geoMercator();
+}
+
 /** Nom d'une ville sans fiche, tiré de son identifiant (« can-tho » → « Can tho ») */
 const nomDepuisIdentifiant = (id) => (id.charAt(0).toUpperCase() + id.slice(1)).replace(/-/g, ' ');
 
@@ -36,14 +47,13 @@ export function creerCarte(svgElement, { monde, codes, zone, surRegion, surVille
   const coucheNoms = groupeZoom.append('g').attr('aria-hidden', 'true');
   const coucheVilles = groupeZoom.append('g');
 
-  const projection = d3.geoMercator();
-  const chemin = d3.geoPath(projection);
-  // Régions très éloignées (Okinawa) : leur propre projection, dans un encart en bas à gauche
-  const projectionEncart = d3.geoMercator();
-  const cheminEncart = d3.geoPath(projectionEncart);
+  let projection = d3.geoMercator();
+  let chemin = d3.geoPath(projection);
+  // Parties très éloignées (Okinawa, Alaska, Hawaï) : chacune dans son encart, avec sa propre projection
   const estEnEncart = (f) => Boolean(f?.properties.encart);
-  const cheminDe = (f) => (estEnEncart(f) ? cheminEncart : chemin);
-  let encarts = [];
+  let encarts = new Map();      // nom → { projection, chemin, parties, cadre }
+  let encartsEnBas = false;
+  const cheminDe = (f) => (estEnEncart(f) ? encarts.get(f.properties.encart).chemin : chemin);
 
   let contenus = null;          // fiches du pays (data/pays/<code>.json)
   let regions = [];             // contours des régions (et « autre »)
@@ -52,6 +62,12 @@ export function creerCarte(svgElement, { monde, codes, zone, surRegion, surVille
   let echelle = 1;
 
   const aUneFiche = (f) => f.properties.r !== 'autre' && contenus.regions[f.properties.r];
+  // Une région peut avoir une partie en encart (l'Alaska dans l'Ouest) : la partie principale porte
+  // le nom, la zone tactile et le zoom ; la partie en encart se touche aussi, mais n'est pas répétée au clavier
+  const partiePrincipale = (r) => regions.find((f) => f.properties.r === r && !estEnEncart(f))
+    || regions.find((f) => f.properties.r === r);
+  const estPrincipale = (f) => partiePrincipale(f.properties.r) === f;
+  const cle = (code) => (f) => code + f.properties.r + (f.properties.encart || '');
   const nomRegion = (id) => nomLieu(contenus.regions[id]);
   const nomVille = (v) => (contenus.villes[v.id] ? nomLieu(contenus.villes[v.id]) : v.nom || nomDepuisIdentifiant(v.id));
 
@@ -81,8 +97,19 @@ export function creerCarte(svgElement, { monde, codes, zone, surRegion, surVille
   function chargerPays(pays, donneesPays, topoRegions, codeNumerique) {
     contenus = donneesPays;
     regions = topojson.feature(topoRegions, topoRegions.objects.regions).features;
-    encarts = regions.filter(estEnEncart);
+    projection = creerProjection(topoRegions.projection);
+    chemin = d3.geoPath(projection);
+    encarts = new Map();
+    for (const f of regions.filter(estEnEncart)) {
+      const nom = f.properties.encart;
+      if (!encarts.has(nom)) {
+        const p = creerProjection(topoRegions.projections_encarts?.[nom]);
+        encarts.set(nom, { projection: p, chemin: d3.geoPath(p), parties: [], cadre: null });
+      }
+      encarts.get(nom).parties.push(f);
+    }
     toutesRegions = { type: 'FeatureCollection', features: regions.filter((f) => !estEnEncart(f)) };
+    encartsEnBas = Boolean(topoRegions.encarts_en_bas);
     etat = { region: null, ville: null };
     svg.attr('aria-label', textes.carte.description(pays.nom));
 
@@ -92,27 +119,31 @@ export function creerCarte(svgElement, { monde, codes, zone, surRegion, surVille
       .attr('class', 'm-country');
 
     coucheProvinces.selectAll('path')
-      .data(regions.filter((f) => !aUneFiche(f)), (f) => pays.code + f.properties.r)
+      .data(regions.filter((f) => !aUneFiche(f)), cle(pays.code))
       .join('path')
       .attr('class', 'm-prov')
       .on('click', (evenement, f) => toucherRegion(f));
     coucheRegions.selectAll('path')
-      .data(regions.filter(aUneFiche), (f) => pays.code + f.properties.r)
+      .data(regions.filter(aUneFiche), cle(pays.code))
       .join('path')
       .attr('class', 'm-reg')
       .attr('data-cible', (f) => f.properties.r)
+      .attr('data-encart', (f) => f.properties.encart || null)
       .attr('aria-label', (f) => nomRegion(f.properties.r))
       .on('click', (evenement, f) => toucherRegion(f))
-      .call(activerAuClavier, toucherRegion);
+      .call(activerAuClavier, toucherRegion)
+      // Partie en encart d'une région déjà présente (Alaska) : touchable, mais une seule fois au clavier
+      .attr('tabindex', (f) => (estPrincipale(f) ? 0 : -1))
+      .attr('aria-hidden', (f) => (estPrincipale(f) ? null : 'true'));
     coucheCibles.selectAll('circle')
-      .data(regions.filter(aUneFiche), (f) => pays.code + f.properties.r)
+      .data(regions.filter(aUneFiche).filter(estPrincipale), cle(pays.code))
       .join('circle')
       .attr('class', 'm-cible')
       .attr('data-cible-de', (f) => f.properties.r)
       .on('click', (evenement, f) => toucherRegion(f));
 
     coucheNoms.selectAll('text')
-      .data(regions.filter(aUneFiche), (f) => pays.code + f.properties.r)
+      .data(regions.filter(aUneFiche).filter(estPrincipale), cle(pays.code))
       .join('text')
       .attr('class', 'm-label')
       .attr('text-anchor', 'middle')
@@ -124,12 +155,23 @@ export function creerCarte(svgElement, { monde, codes, zone, surRegion, surVille
   function redimensionner() {
     if (!contenus) return;
     const z = zone();
-    projection.fitExtent([[z.x0, z.y0], [z.x1, z.y1]], toutesRegions);
-    // Encart : environ un tiers de la largeur, dans le coin de la carte le plus libre
-    // (en bas à gauche de préférence, comme sur les cartes japonaises)
-    const cadre = encarts.length ? coinLibre(z, (z.x1 - z.x0) * 0.32, (z.y1 - z.y0) * 0.26) : null;
-    if (cadre) projectionEncart.fitExtent([[cadre.x + 10, cadre.y + 10], [cadre.x + cadre.l - 10, cadre.y + cadre.h - 10]], { type: 'FeatureCollection', features: encarts });
-    coucheEncart.selectAll('rect').data(cadre ? [cadre] : []).join('rect')
+    // Encarts : environ un tiers de la largeur chacun, dans les coins de la carte les plus libres
+    // (en bas à gauche de préférence, comme sur les cartes japonaises et américaines)
+    const [largeurEncart, hauteurEncart] = [(z.x1 - z.x0) * 0.32, (z.y1 - z.y0) * 0.26];
+    // Pays large (États-Unis) : une bande est réservée en bas pour les encarts, la carte remonte
+    const bas = encarts.size && encartsEnBas ? z.y1 - hauteurEncart - 8 : z.y1;
+    projection.fitExtent([[z.x0, z.y0], [z.x1, bas]], toutesRegions);
+    const cadres = [];
+    for (const encart of encarts.values()) {
+      const cadre = encartsEnBas
+        ? { x: z.x0 + 4 + cadres.length * (largeurEncart + 8), y: z.y1 - hauteurEncart, l: largeurEncart, h: hauteurEncart }
+        : coinLibre(z, largeurEncart, hauteurEncart, cadres);
+      encart.projection.fitExtent([[cadre.x + 10, cadre.y + 10], [cadre.x + cadre.l - 10, cadre.y + cadre.h - 10]],
+        { type: 'FeatureCollection', features: encart.parties });
+      encart.cadre = cadre;
+      cadres.push(cadre);
+    }
+    coucheEncart.selectAll('rect').data(cadres).join('rect')
       .attr('class', 'm-encart')
       .attr('x', (c) => c.x).attr('y', (c) => c.y).attr('width', (c) => c.l).attr('height', (c) => c.h)
       .attr('rx', 10);
@@ -150,14 +192,19 @@ export function creerCarte(svgElement, { monde, codes, zone, surRegion, surVille
     afficher(etat, false);
   }
 
-  /** Coin de la zone qui recouvre le moins de terres du pays (points des contours projetés). */
-  function coinLibre(z, l, h) {
+  /**
+   * Coin de la zone qui recouvre le moins de terres du pays (points des contours projetés),
+   * sans chevaucher les encarts déjà placés.
+   */
+  function coinLibre(z, l, h, dejaPlaces = []) {
+    const chevauche = (c) => dejaPlaces.some((d) => c.x < d.x + d.l && d.x < c.x + l && c.y < d.y + d.h && d.y < c.y + h);
     const coins = [
       { x: z.x0 + 4, y: z.y1 - h },          // bas gauche (préféré)
+      { x: z.x0 + 12 + l, y: z.y1 - h },     // en bas, à droite du premier encart
       { x: z.x0 + 4, y: z.y0 },              // haut gauche
       { x: z.x1 - l - 4, y: z.y1 - h },      // bas droite
       { x: z.x1 - l - 4, y: z.y0 },          // haut droite
-    ];
+    ].filter((c) => !chevauche(c) && (dejaPlaces.length || c.x === z.x0 + 4 || c.x === z.x1 - l - 4));
     const points = [];
     for (const f of toutesRegions.features) {
       d3.geoStream(f, projection.stream({ point: (x, y) => points.push([x, y]), lineStart() {}, lineEnd() {}, polygonStart() {}, polygonEnd() {}, sphere() {} }));
@@ -173,7 +220,7 @@ export function creerCarte(svgElement, { monde, codes, zone, surRegion, surVille
     let k = 1;
     let tx = 0;
     let ty = 0;
-    const cible = etat.region && regions.find((f) => f.properties.r === etat.region);
+    const cible = etat.region && partiePrincipale(etat.region);
     if (cible) {
       const z = zone();
       const [[x0, y0], [x1, y1]] = cheminDe(cible).bounds(cible);
@@ -203,8 +250,7 @@ export function creerCarte(svgElement, { monde, codes, zone, surRegion, surVille
 
   function dessinerVilles() {
     const villes = etat.region ? contenus.regions[etat.region].villes || [] : [];
-    // Les villes d'une région en encart se placent dans l'encart
-    const projectionVilles = estEnEncart(regions.find((f) => f.properties.r === etat.region)) ? projectionEncart : projection;
+    const positions = villes.map(positionVille);
     const groupes = coucheVilles.selectAll('g.m-city')
       .data(villes, (v) => v.id)
       .join((entree) => {
@@ -222,7 +268,7 @@ export function creerCarte(svgElement, { monde, codes, zone, surRegion, surVille
       .classed('on', (v) => v.id === etat.ville)
       .attr('aria-label', (v) => (contenus.villes[v.id] ? nomVille(v) : textes.carte.villeSansFiche(nomVille(v))))
       .attr('aria-current', (v) => (v.id === etat.ville ? 'location' : null))
-      .attr('transform', (v) => `translate(${projectionVilles(v.point).join(',')})`)
+      .attr('transform', (v, i) => `translate(${positions[i].join(',')})`)
       .on('click', (evenement, v) => toucherVille(v))
       .call(activerAuClavier, toucherVille);
     groupes.select('.m-hit').attr('r', 22 / echelle);
@@ -231,7 +277,26 @@ export function creerCarte(svgElement, { monde, codes, zone, surRegion, surVille
       .style('font-size', `${13 / echelle}px`)
       .style('stroke-width', `${3 / echelle}px`)
       .text(nomVille);
-    separerVillesProches(groupes, villes, villes.map((v) => projectionVilles(v.point)));
+    separerVillesProches(groupes, villes, positions);
+  }
+
+  /**
+   * Position d'une ville à l'écran : dans l'encart dont elle fait partie (Anchorage dans celui
+   * de l'Alaska, Naha dans celui d'Okinawa), sinon sur la carte principale.
+   * La ville est dans un encart si elle tombe dans le rectangle de ses terres (à 0,5° près :
+   * une ville côtière peut tomber juste en mer une fois les contours allégés).
+   */
+  function positionVille(v) {
+    const [lon, lat] = v.point;
+    for (const encart of encarts.values()) {
+      const dedans = encart.parties.some((f) => {
+        const [[x0, y0], [x1, y1]] = d3.geoBounds(f);
+        const dansLongitudes = x0 <= x1 ? lon >= x0 - 0.5 && lon <= x1 + 0.5 : lon >= x0 - 0.5 || lon <= x1 + 0.5;
+        return dansLongitudes && lat >= y0 - 0.5 && lat <= y1 + 0.5;
+      });
+      if (dedans) return encart.projection(v.point);
+    }
+    return projection(v.point);
   }
 
   /**

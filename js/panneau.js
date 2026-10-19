@@ -2,7 +2,7 @@
 // onglets Histoire, Plats, Produits, Recettes, favori du lieu.
 
 import { textes } from './textes.js';
-import { echapper, attributLangue, vignette, photoVerifiee, carteRecette, nomLieu } from './outils.js';
+import { echapper, elementOrigine, nomOrigine, vignette, photoVerifiee, carteRecette, nomLieu } from './outils.js';
 import { cleLieu, estFavori, basculerFavori } from './favoris.js';
 import { ecritDeDroiteAGauche } from './polices.js';
 import { exploserPiments } from './animations.js';
@@ -161,7 +161,7 @@ export function creerPanneau(conteneur, { scene, surRecette, surMessage }) {
     return `<p class="section-label">${t.platsEmblematiques}</p><ul class="list">${plats.map((p) => {
       const recette = p.recette && fiche.contenus.recettes[p.recette];
       const interieur = `${vignette(p.nom_origine, langue(), photoVerifiee(recette))}
-        <span class="min"><span class="t">${echapper(p.nom)}</span><br><span class="o"${attributLangue(langue())}>${echapper(p.nom_origine)}</span>
+        <span class="min"><span class="t">${echapper(p.nom)}</span><br>${elementOrigine(p.nom_origine, langue())}
         <span class="d">${echapper(p.resume || '')}</span>
         ${recette ? `<span class="chips"><span class="chip accent">${t.voirLaRecette}</span></span>` : ''}</span>`;
       return `<li>${recette ? `<button class="item" data-recette="${echapper(p.recette)}">${interieur}</button>` : `<div class="item">${interieur}</div>`}</li>`;
@@ -172,7 +172,7 @@ export function creerPanneau(conteneur, { scene, surRecette, surMessage }) {
     const produits = l.produits_typiques || [];
     let html = `<p class="section-label">${t.produitsTypiques}</p><ul class="list">${produits.map((p) => `<li><div class="item"><span class="min">
         <span class="t">${echapper(p.nom)}</span>${p.label ? `<span class="badge">${echapper(p.label)}</span>` : ''}<br>
-        <span class="o"${attributLangue(langue())}>${echapper(p.nom_origine || '')}</span>
+        ${elementOrigine(p.nom_origine || '', langue())}
         <span class="d">${echapper(p.description)}</span></span></div></li>`).join('')}</ul>`;
     if (fiche.niveau === 'ville' && l.lieux_gourmands?.length) {
       html += `<p class="section-label">${t.lieuxGourmands}</p><ul class="list">${l.lieux_gourmands.map((g) => `<li><div class="item"><span class="min">
@@ -242,10 +242,14 @@ export function creerPanneau(conteneur, { scene, surRecette, surMessage }) {
       : fiche.niveau === 'region' ? t.etiquetteRegion : t.etiquettePays;
     $('#fiche-titre').textContent = nomLieu(l);
     const local = $('#fiche-local');
-    local.textContent = l.nom_local || '';
-    if (langue()) local.lang = langue();
-    if (ecritDeDroiteAGauche(langue())) local.dir = 'rtl';
-    else local.removeAttribute('dir');
+    // Nom local : découpé en morceaux s'il mêle les écritures (arabe, tifinagh, transcription)
+    const o = nomOrigine(l.nom_local || '', langue());
+    local.innerHTML = o.html;
+    local.removeAttribute('dir');
+    if (o.attributs) {
+      local.lang = langue();
+      if (ecritDeDroiteAGauche(langue())) local.dir = 'rtl';
+    } else local.removeAttribute('lang');
     afficherFavori();
 
     const etaitCache = panneau.hidden;

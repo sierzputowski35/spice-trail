@@ -76,6 +76,8 @@ export const textes = {
     piquant: ['Pas piquant', 'Légèrement piquant', 'Piquant', 'Très piquant'],
     piquantSur3: (n) => `Piquant ${n} sur 3`,
     dureeVide: '–',
+    jours: (n) => `${n} jours`,
+    semaines: (n) => (n > 1 ? `${n} semaines` : '1 semaine'),
     preparation: 'Préparation',
     cuisson: 'Cuisson',
     repos: 'Repos',
