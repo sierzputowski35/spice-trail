@@ -1,5 +1,13 @@
 [
   {
+    "code": "br",
+    "nom": "Brésil",
+    "couleur": "#138A4F",
+    "langue": "pt",
+    "police": "# vide : écriture latine ou grecque, aucune police à charger",
+    "fichier": "data/pays/br.json"
+  },
+  {
     "code": "cn",
     "nom": "Chine",
     "couleur": "#B8322A",
@@ -24,12 +32,44 @@
     "fichier": "data/pays/es.json"
   },
   {
+    "code": "fr",
+    "nom": "France",
+    "couleur": "#8B7BC8",
+    "langue": "fr",
+    "police": "# vide : écriture latine ou grecque, aucune police à charger",
+    "fichier": "data/pays/fr.json"
+  },
+  {
+    "code": "gr",
+    "nom": "Grèce",
+    "couleur": "#1E9FD0",
+    "langue": "el",
+    "police": "# vide : écriture latine ou grecque, aucune police à charger",
+    "fichier": "data/pays/gr.json"
+  },
+  {
     "code": "in",
     "nom": "Inde",
     "couleur": "#F28C28",
     "langue": "hi",
     "police": "Noto Sans Devanagari",
     "fichier": "data/pays/in.json"
+  },
+  {
+    "code": "ir",
+    "nom": "Iran",
+    "couleur": "#8DB255",
+    "langue": "fa",
+    "police": "Noto Sans Arabic",
+    "fichier": "data/pays/ir.json"
+  },
+  {
+    "code": "it",
+    "nom": "Italie",
+    "couleur": "#2F6B35",
+    "langue": "it",
+    "police": "# vide : écriture latine ou grecque, aucune police à charger",
+    "fichier": "data/pays/it.json"
   },
   {
     "code": "jp",
@@ -67,6 +107,22 @@
     "fichier": "data/pays/mx.json"
   },
   {
+    "code": "pe",
+    "nom": "Pérou",
+    "couleur": "#4B2A7B",
+    "langue": "es",
+    "police": "# vide : écriture latine ou grecque, aucune police à charger",
+    "fichier": "data/pays/pe.json"
+  },
+  {
+    "code": "sn",
+    "nom": "Sénégal",
+    "couleur": "#7E1F5A",
+    "langue": "fr",
+    "police": "# vide : écriture latine ou grecque, aucune police à charger",
+    "fichier": "data/pays/sn.json"
+  },
+  {
     "code": "th",
     "nom": "Thaïlande",
     "couleur": "#7B3FA0",
@@ -83,6 +139,14 @@
     "fichier": "data/pays/tn.json"
   },
   {
+    "code": "tr",
+    "nom": "Turquie",
+    "couleur": "#7A4B2A",
+    "langue": "tr",
+    "police": "# vide : écriture latine ou grecque, aucune police à charger",
+    "fichier": "data/pays/tr.json"
+  },
+  {
     "code": "vn",
     "nom": "Vietnam",
     "couleur": "#E2557F",
@@ -96,5 +160,13 @@
     "langue": "en",
     "police": "# vide : écriture latine, aucune police à charger",
     "fichier": "data/pays/us.json"
+  },
+  {
+    "code": "et",
+    "nom": "Éthiopie",
+    "couleur": "#A63A1E",
+    "langue": "am",
+    "police": "Noto Sans Ethiopic",
+    "fichier": "data/pays/et.json"
   }
 ]

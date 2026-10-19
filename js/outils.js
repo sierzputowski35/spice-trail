@@ -56,6 +56,12 @@ export function morceauxNom(nom, langue) {
 }
 
 /**
+ * Langues dont la transcription latine porte sa propre langue (« el-Latn »), demandé au lot 3 pour le grec.
+ * Les autres écritures (chinois, thaï, japonais…) gardent l'affichage validé des lots précédents.
+ */
+const TRANSCRIPTION_A_PART = new Set(['el']);
+
+/**
  * Nom d'origine prêt à afficher, avec sa langue.
  * Un nom qui mêle les sens d'écriture (arabe) ou les écritures (arabe et tifinagh) est découpé :
  * chaque morceau porte sa propre langue et son sens, sinon l'ordre des mots s'inverse à l'écran.
@@ -66,7 +72,8 @@ export function morceauxNom(nom, langue) {
 export function nomOrigine(nom, langue, langueParentheses = langue) {
   const texte = String(nom ?? '');
   const autreLangue = langueParentheses && langueParentheses !== langue && texte.includes('(');
-  if (!ecritDeDroiteAGauche(langue) && !texte.includes(' · ') && !autreLangue) {
+  const transcriptionAPart = TRANSCRIPTION_A_PART.has(langue) && texte.includes('(');
+  if (!ecritDeDroiteAGauche(langue) && !texte.includes(' · ') && !autreLangue && !transcriptionAPart) {
     return { attributs: attributLangue(langue), html: echapper(texte) };
   }
   const { ecritures, transcription } = morceauxNom(texte, langue);

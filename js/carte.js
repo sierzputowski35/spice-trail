@@ -60,6 +60,7 @@ export function creerCarte(svgElement, { monde, codes, zone, surRegion, surVille
   let toutesRegions = null;
   let etat = { region: null, ville: null };
   let echelle = 1;
+  let vue = { tx: 0, ty: 0, k: 1 };   // zoom en cours : sert à garder les noms des villes dans l'écran
 
   const aUneFiche = (f) => f.properties.r !== 'autre' && contenus.regions[f.properties.r];
   // Une région peut avoir une partie en encart (l'Alaska dans l'Ouest) : la partie principale porte
@@ -157,7 +158,10 @@ export function creerCarte(svgElement, { monde, codes, zone, surRegion, surVille
     const z = zone();
     // Encarts : environ un tiers de la largeur chacun, dans les coins de la carte les plus libres
     // (en bas à gauche de préférence, comme sur les cartes japonaises et américaines)
-    const [largeurEncart, hauteurEncart] = [(z.x1 - z.x0) * 0.32, (z.y1 - z.y0) * 0.26];
+    // (en bande du bas, ils se partagent la largeur : cinq encarts pour l'outre-mer français)
+    const largeurEncart = Math.min((z.x1 - z.x0) * 0.32, encartsEnBas && encarts.size
+      ? (z.x1 - z.x0 - 8 * (encarts.size + 1)) / encarts.size : Infinity);
+    const hauteurEncart = Math.min((z.y1 - z.y0) * 0.26, largeurEncart);
     // Pays large (États-Unis) : une bande est réservée en bas pour les encarts, la carte remonte
     const bas = encarts.size && encartsEnBas ? z.y1 - hauteurEncart - 8 : z.y1;
     projection.fitExtent([[z.x0, z.y0], [z.x1, bas]], toutesRegions);
@@ -223,12 +227,17 @@ export function creerCarte(svgElement, { monde, codes, zone, surRegion, surVille
     const cible = etat.region && partiePrincipale(etat.region);
     if (cible) {
       const z = zone();
-      const [[x0, y0], [x1, y1]] = cheminDe(cible).bounds(cible);
+      // Région faite seulement d'encarts (outre-mer) : le zoom les montre tous
+      const parties = estEnEncart(cible) ? regions.filter((f) => f.properties.r === etat.region) : [cible];
+      const cadres = parties.map((f) => cheminDe(f).bounds(f));
+      const [x0, y0, x1, y1] = [Math.min(...cadres.map((c) => c[0][0])), Math.min(...cadres.map((c) => c[0][1])),
+        Math.max(...cadres.map((c) => c[1][0])), Math.max(...cadres.map((c) => c[1][1]))];
       k = Math.min(ZOOM_MAX, 0.8 * Math.min((z.x1 - z.x0) / (x1 - x0), (z.y1 - z.y0) / (y1 - y0)));
       tx = (z.x0 + z.x1) / 2 - k * (x0 + x1) / 2;
       ty = (z.y0 + z.y1) / 2 - k * (y0 + y1) / 2;
     }
     echelle = k;
+    vue = { tx, ty, k };
     const transformation = `translate(${tx},${ty}) scale(${k})`;
     if (anime && !mouvementReduit()) {
       groupeZoom.transition().duration(DUREE_ZOOM).ease(d3.easeCubicInOut).attr('transform', transformation);
@@ -339,6 +348,11 @@ export function creerCarte(svgElement, { monde, codes, zone, surRegion, surVille
     };
     const recouvre = (a, b) => Math.max(0, Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0)) * Math.max(0, Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0));
     const obstacles = points.map(([x, y]) => ({ x0: x - rayonPoint, x1: x + rayonPoint, y0: y - rayonPoint, y1: y + rayonPoint }));
+    // Partie visible de la carte, dans les coordonnées de la carte
+    const ecran = { x0: -vue.tx / vue.k, y0: -vue.ty / vue.k,
+      x1: (svgElement.clientWidth - vue.tx) / vue.k, y1: (svgElement.clientHeight - vue.ty) / vue.k };
+    const largeurBoite = (b) => b.x1 - b.x0;
+    const hauteurBoite = (b) => b.y1 - b.y0;
     const ordre = groupes.nodes().slice().reverse();   // devant en premier
     for (const noeud of ordre) {
       const v = d3.select(noeud).datum();
@@ -346,7 +360,9 @@ export function creerCarte(svgElement, { monde, codes, zone, surRegion, surVille
       const largeur = texte.getComputedTextLength() || 0;
       const point = points[indice.get(v.id)];
       const autres = obstacles.filter((o, j) => j !== indice.get(v.id));
-      const cout = (p) => autres.reduce((s, o) => s + recouvre(boite(point, p, largeur), o), 0);
+      // Un nom qui sort de l'écran compte comme un chevauchement (très pénalisé)
+      const horsEcran = (b) => largeurBoite(b) * hauteurBoite(b) - recouvre(b, ecran);
+      const cout = (p) => autres.reduce((s, o) => s + recouvre(boite(point, p, largeur), o), 0) + 4 * horsEcran(boite(point, p, largeur));
       const meilleure = positions.reduce((m, p) => (cout(p) < cout(m) - 1e-9 ? p : m));
       texte.setAttribute('text-anchor', meilleure.ancre);
       texte.setAttribute('x', meilleure.x);
