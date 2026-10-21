@@ -28,6 +28,9 @@ export const chargerMonde = () => charger('data/geo/monde-110m.json');
 /** Table code ISO numérique → code à deux lettres (« 156 » → « CN ») */
 export const chargerCodesIso = () => charger('data/geo/codes-iso.json');
 
+/** Drapeau d'un pays pour le globe : fond et emblème déjà placés (outils/preparer_drapeaux.mjs). */
+export const chargerDrapeau = (code) => charger(`data/geo/drapeaux/${code}.json`);
+
 /** Contenus d'un pays (fiches et recettes). Sa police d'écriture se charge en même temps. */
 export function chargerPays(pays) {
   chargerPolice(pays);

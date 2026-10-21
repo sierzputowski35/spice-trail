@@ -70,9 +70,26 @@ body { overflow: hidden; }
   50% { opacity: .14; }
 }
 /* Drapeau au survol ou au toucher */
+/* Drapeau au survol, au toucher et pendant l'envol (REX n° 1, § 3.5) : contour fin, 0,8 px */
 .country.flagged {
   stroke: var(--shadow-ink);
-  stroke-width: 2.5;
+  stroke-width: .8;
+}
+.drapeaux { pointer-events: none; }
+.drapeau-contour {
+  fill: none;
+  stroke: var(--shadow-ink);
+  stroke-width: .8;
+  vector-effect: non-scaling-stroke;
+}
+/* Vignette : le vrai drapeau, cadre blanc, contour, ombre dure et petite pointe vers le bas */
+.vignette-ombre { fill: var(--shadow-ink); }
+.vignette-cadre,
+.vignette-pointe {
+  fill: var(--paper);
+  stroke: var(--border);
+  stroke-width: 2;
+  stroke-linejoin: round;
 }
 
 /* ---------- Carte du pays ---------- */

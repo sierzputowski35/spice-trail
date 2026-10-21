@@ -3,6 +3,7 @@
 // drapeau au survol et au toucher, envol vers un pays et retour.
 
 import { textes } from './textes.js';
+import { chargerDrapeau } from './donnees.js';
 
 const d3 = window.d3;
 const topojson = window.topojson;
@@ -15,6 +16,8 @@ const DUREE_ENVOL = 1000;     // rotation et zoom vers le pays
 const DUREE_FONDU = 450;      // bascule du globe vers la carte
 const DUREE_RETOUR = 900;     // dézoom au retour sur le globe
 const ZOOM_ENVOL = 2.6;
+// Vignette du drapeau (REX n° 1, § 3.5) : vrai drapeau 40 × 27, cadre de 3 px, pointe vers le bas
+const VIGNETTE = { largeur: 40, hauteur: 27, cadre: 3, ecart: 12, pointe: 8 };
 
 const mouvementReduit = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 const attendre = (ms) => new Promise((fin) => setTimeout(fin, ms));
@@ -43,19 +46,6 @@ export function creerGlobe(svgElement, { monde, codes, listePays, surPaysDisponi
   const svg = d3.select(svgElement)
     .attr('role', 'group')
     .attr('aria-label', textes.globe.description);
-
-  // Drapeaux (drapeaux/<code>.svg), préparés dès le départ pour s'afficher sans délai
-  const defs = svg.append('defs');
-  for (const p of listePays) {
-    defs.append('pattern')
-      .attr('id', `drapeau-${p.code}`)
-      .attr('patternContentUnits', 'objectBoundingBox')
-      .attr('width', 1).attr('height', 1)
-      .append('image')
-      .attr('href', `drapeaux/${p.code}.svg`)
-      .attr('width', 1).attr('height', 1)
-      .attr('preserveAspectRatio', 'xMidYMid slice');
-  }
 
   const ombre = svg.append('circle').attr('class', 'globe-shadow');
   const sphere = svg.append('path').attr('class', 'sphere').datum({ type: 'Sphere' });
@@ -86,6 +76,21 @@ export function creerGlobe(svgElement, { monde, codes, listePays, surPaysDisponi
     .attr('class', 'scintille')
     .style('--duree', () => `${(2.6 + Math.random() * 1.8).toFixed(2)}s`)
     .style('--decalage', () => `${(-Math.random() * 4.4).toFixed(2)}s`);
+  // Drapeaux affichés (au-dessus des pays, sans jamais bloquer les touchers)
+  const coucheDrapeaux = svg.append('g').attr('class', 'drapeaux').attr('aria-hidden', 'true');
+  const drapeauxAffiches = new Set();
+  const donneesDrapeaux = new Map();
+  // Plus grande terre de chaque pays : la vignette se pose au-dessus d'elle (pas au-dessus de l'Alaska)
+  const terres = new Map();
+  const terrePrincipale = (f) => {
+    if (!terres.has(f)) {
+      const g = f.geometry;
+      const polygones = g.type === 'MultiPolygon' ? g.coordinates : [g.coordinates];
+      const aire = (c) => d3.geoArea({ type: 'Polygon', coordinates: c });
+      terres.set(f, { type: 'Polygon', coordinates: polygones.reduce((a, b) => (aire(b) > aire(a) ? b : a)) });
+    }
+    return terres.get(f);
+  };
   tracesDisponibles.attr('data-cible', (f) => `pays-${paysDisponible(f).code}`);
   const centres = new Map(pays.filter(paysDisponible).map((f) => [f, d3.geoCentroid(f)]));
   tracesDisponibles
@@ -104,11 +109,107 @@ export function creerGlobe(svgElement, { monde, codes, listePays, surPaysDisponi
       }
     });
 
+  /**
+   * Drapeau d'un pays (REX n° 1, § 3) : le FOND remplit tout le pays et l'EMBLÈME officiel,
+   * à ses vraies proportions, est placé au cœur du pays ; tous deux suivent la rotation.
+   * Les formes sont préparées à l'avance (data/geo/drapeaux/<code>.json).
+   */
   function afficherDrapeau(element, f, visible) {
-    const p = paysDisponible(f);
-    d3.select(element)
-      .classed('flagged', visible)
-      .style('fill', visible ? `url(#drapeau-${p.code})` : p.couleur);
+    d3.select(element).classed('flagged', visible);
+    if (!visible) {
+      drapeauxAffiches.delete(f);
+      dessinerDrapeaux();
+      return;
+    }
+    drapeauxAffiches.add(f);
+    const { code } = paysDisponible(f);
+    if (donneesDrapeaux.has(code)) {
+      dessinerDrapeaux();
+      return;
+    }
+    chargerDrapeau(code)
+      .then((donnees) => { donneesDrapeaux.set(code, donnees); dessinerDrapeaux(); })
+      .catch(() => { /* sans connexion : le pays garde sa couleur */ });
+  }
+
+  /** Une image placée par trois coins (haut gauche, haut droit, bas gauche) en latitude/longitude. */
+  function placerImage(image, coins) {
+    const [p0, p1, p2] = coins.map((c) => projection(c));
+    const largeur = Math.hypot(p1[0] - p0[0], p1[1] - p0[1]) || 1;
+    const hauteur = Math.hypot(p2[0] - p0[0], p2[1] - p0[1]) || 1;
+    const matrice = [(p1[0] - p0[0]) / largeur, (p1[1] - p0[1]) / largeur, (p2[0] - p0[0]) / hauteur, (p2[1] - p0[1]) / hauteur, p0[0], p0[1]];
+    image
+      .attr('width', largeur)
+      .attr('height', hauteur)
+      .attr('transform', `matrix(${matrice.join(' ')})`);
+  }
+
+  function dessinerDrapeaux() {
+    const [lambda, phi] = projection.rotate();
+    const surFaceVisible = (point) => d3.geoDistance(point, [-lambda, -phi]) < Math.PI / 2 - 0.05;
+    const affiches = [...drapeauxAffiches].filter((f) => donneesDrapeaux.has(paysDisponible(f).code));
+    const groupes = coucheDrapeaux.selectAll('g.drapeau')
+      .data(affiches, (f) => paysDisponible(f).code)
+      .join((entree) => {
+        const g = entree.append('g').attr('class', 'drapeau');
+        g.each(function (f) {
+          const { code } = paysDisponible(f);
+          const donnees = donneesDrapeaux.get(code);
+          const groupe = d3.select(this);
+          const idCoupe = `drapeau-coupe-${code}`;
+          groupe.append('clipPath').attr('id', idCoupe).append('path');
+          const dessin = groupe.append('g').attr('clip-path', `url(#${idCoupe})`);
+          dessin.selectAll('path.fond').data(donnees.fond || []).join('path')
+            .attr('class', 'fond')
+            .style('fill', (forme) => forme.c);   // couleurs officielles du drapeau, lues dans les données
+          if (donnees.fondImage) {
+            dessin.append('image').attr('class', 'fond-image').attr('href', donnees.fondImage.href).attr('preserveAspectRatio', 'none');
+          }
+          if (donnees.embleme) {
+            dessin.append('image').attr('class', 'embleme').attr('href', donnees.embleme.href).attr('preserveAspectRatio', 'none');
+          }
+          groupe.append('path').attr('class', 'drapeau-contour');
+          const vignette = groupe.append('g').attr('class', 'vignette');
+          vignette.append('rect').attr('class', 'vignette-ombre');
+          vignette.append('polygon').attr('class', 'vignette-pointe');
+          vignette.append('rect').attr('class', 'vignette-cadre');
+          vignette.append('image').attr('class', 'vignette-drapeau')
+            .attr('href', `drapeaux/${code}.svg`).attr('preserveAspectRatio', 'xMidYMid slice');
+        });
+        return g;
+      });
+
+    groupes.each(function (f) {
+      const groupe = d3.select(this);
+      const donnees = donneesDrapeaux.get(paysDisponible(f).code);
+      const trace = chemin(f);
+      groupe.attr('display', trace ? null : 'none');
+      if (!trace) return;
+      groupe.select('clipPath path').attr('d', trace);
+      groupe.select('.drapeau-contour').attr('d', trace);
+      groupe.selectAll('path.fond').attr('d', (forme) => chemin({ type: 'Polygon', coordinates: [forme.d] }));
+      if (donnees.fondImage) placerImage(groupe.select('.fond-image'), donnees.fondImage.coins);
+      const ancreVisible = surFaceVisible(donnees.ancre);
+      if (donnees.embleme) {
+        const embleme = groupe.select('.embleme');
+        const coinsVisibles = donnees.embleme.coins.every(surFaceVisible);
+        embleme.attr('display', coinsVisibles ? null : 'none');
+        if (coinsVisibles) placerImage(embleme, donnees.embleme.coins);
+      }
+      // Vignette au-dessus du pays, alignée sur l'emblème ; cachée quand l'emblème passe derrière le globe
+      const vignette = groupe.select('.vignette').attr('display', ancreVisible ? null : 'none');
+      if (!ancreVisible) return;
+      const { largeur, hauteur, cadre, ecart, pointe } = VIGNETTE;
+      const [cx] = projection(donnees.ancre);
+      const [[, haut]] = chemin.bounds(terrePrincipale(f));
+      const x = cx - largeur / 2;
+      const y = Math.max(4, haut - hauteur - ecart);
+      vignette.select('.vignette-ombre').attr('x', x + 3).attr('y', y + 3).attr('width', largeur).attr('height', hauteur).attr('rx', 3);
+      vignette.select('.vignette-cadre').attr('x', x).attr('y', y).attr('width', largeur).attr('height', hauteur).attr('rx', 3);
+      vignette.select('.vignette-pointe').attr('points', [[cx - 6, y + hauteur - 1], [cx + 6, y + hauteur - 1], [cx, y + hauteur + pointe]].map((p) => p.join(',')).join(' '));
+      vignette.select('.vignette-drapeau').attr('x', x + cadre).attr('y', y + cadre)
+        .attr('width', largeur - 2 * cadre).attr('height', hauteur - 2 * cadre);
+    });
   }
 
   let echelle = 200;
@@ -122,6 +223,7 @@ export function creerGlobe(svgElement, { monde, codes, listePays, surPaysDisponi
     meridiens.attr('d', chemin);
     traces.attr('d', chemin);
     voiles.attr('d', chemin);
+    if (drapeauxAffiches.size) dessinerDrapeaux();
     // Une zone tactile n'existe que si le pays est sur la face visible du globe
     const [lambda, phi] = projection.rotate();
     cibles.each(function (f) {
