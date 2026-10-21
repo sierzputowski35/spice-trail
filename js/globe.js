@@ -3,7 +3,7 @@
 // drapeau au survol et au toucher, envol vers un pays et retour.
 
 import { textes } from './textes.js';
-import { chargerDrapeau } from './donnees.js';
+import { chargerDrapeau, chargerMondeDetaille } from './donnees.js';
 
 const d3 = window.d3;
 const topojson = window.topojson;
@@ -16,6 +16,18 @@ const DUREE_ENVOL = 1000;     // rotation et zoom vers le pays
 const DUREE_FONDU = 450;      // bascule du globe vers la carte
 const DUREE_RETOUR = 900;     // dézoom au retour sur le globe
 const ZOOM_ENVOL = 2.6;
+// Zoom façon Google Earth (REX n° 1, § 5)
+const ZOOM_MIN = 1;
+const ZOOM_MAX = 12;
+const PLEIN_ECRAN_DEBUT = 1.5;   // au-delà, le globe passe en plein écran
+const PLEIN_ECRAN_FIN = 1.2;     // en dessous (doigts relâchés), retour à l'accueil normal
+const ZOOM_DETAIL = 3;           // contours détaillés à partir de ×3 (chargés dès ×2)
+const ZOOM_BOUTON = 1.8;         // boutons + et − : ×1,8 en 0,42 s
+const DUREE_ZOOM_BOUTON = 420;
+const DUREE_DEZOOM = 700;        // bouton × : retour au globe entier
+const DUREE_GLISSE = 380;        // passage en plein écran : le globe glisse jusqu'au centre
+const AMORTI_ELAN = 420;         // élan : amortissement exp(−dt / 420 ms)
+const ARRET_ELAN = 0.0015;       // élan arrêté sous 0,0015 °/ms
 // Vignette du drapeau (REX n° 1, § 3.5) : vrai drapeau 40 × 27, cadre de 3 px, pointe vers le bas
 const VIGNETTE = { largeur: 40, hauteur: 27, cadre: 3, ecart: 12, pointe: 8 };
 
@@ -36,7 +48,7 @@ function nomFrancais(pays, codes) {
  * options.surPaysDisponible(pays) : toucher d'un pays disponible (pays de data/pays.json)
  * options.surPaysBientot(nom)     : toucher d'un autre pays (nom en français)
  */
-export function creerGlobe(svgElement, { monde, codes, listePays, surPaysDisponible, surPaysBientot }) {
+export function creerGlobe(svgElement, { monde, codes, listePays, surPaysDisponible, surPaysBientot, surPleinEcran, surZoom }) {
   const disponibles = new Map(listePays.map((p) => [p.code.toUpperCase(), p]));
   const paysDisponible = (f) => disponibles.get(codes[String(f.id)]);
   const pays = topojson.feature(monde, monde.objects.countries).features;
@@ -47,16 +59,47 @@ export function creerGlobe(svgElement, { monde, codes, listePays, surPaysDisponi
     .attr('role', 'group')
     .attr('aria-label', textes.globe.description);
 
-  const ombre = svg.append('circle').attr('class', 'globe-shadow');
-  const sphere = svg.append('path').attr('class', 'sphere').datum({ type: 'Sphere' });
-  const meridiens = svg.append('path').attr('class', 'grat').datum(d3.geoGraticule10());
-  const traces = svg.append('g').selectAll('path').data(pays).join('path')
-    .attr('class', (f) => (paysDisponible(f) ? 'country has' : 'country'))
-    .style('fill', (f) => paysDisponible(f)?.couleur ?? null)
+  // Dessin hybride (REX n° 1, § 5.6 : fluidité au zoom) :
+  // - sur une TOILE (canvas), sous le SVG : ombre, sphère, méridiens et pays « Bientôt disponible »,
+  //   simple décor, redessiné très vite ;
+  // - en SVG : les pays disponibles, qui restent de vrais boutons (clavier, lecteurs d'écran, survol, drapeaux).
+  const toile = document.createElement('canvas');
+  toile.className = 'globe-fond';
+  toile.setAttribute('aria-hidden', 'true');
+  svgElement.before(toile);
+  const contexte = toile.getContext('2d');
+  const crayon = d3.geoPath(projection, contexte);
+  const meridiens = d3.geoGraticule10();
+  const autresPays = pays.filter((f) => !paysDisponible(f));
+  // Couleurs de la toile : les jetons de css/tokens.css, relus quand le thème change
+  let couleurs = {};
+  function lireCouleurs() {
+    const style = getComputedStyle(svgElement);
+    const jeton = (nom) => style.getPropertyValue(nom).trim();
+    couleurs = { encre: jeton('--shadow-ink'), ocean: jeton('--ocean'), ligne: jeton('--ocean-line'), terre: jeton('--land-soon') };
+  }
+  lireCouleurs();
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { lireCouleurs(); dessiner(); });
+  new MutationObserver(() => { lireCouleurs(); dessiner(); })
+    .observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+  const traces = svg.append('g').selectAll('path').data(pays.filter(paysDisponible)).join('path')
+    .attr('class', 'country has')
+    .style('fill', (f) => paysDisponible(f).couleur)
     .on('click', (evenement, f) => toucher(f, evenement.currentTarget));
   traces.append('title').text((f) => nomFrancais(f, codes));
 
-  const tracesDisponibles = traces.filter(paysDisponible);
+  const tracesDisponibles = traces;
+
+  // Toucher d'un pays « Bientôt disponible » (dessiné sur la toile) : retrouvé par sa position sur le globe
+  svgElement.addEventListener('click', (evenement) => {
+    if (evenement.target !== svgElement || !surGlobe) return;
+    const pt = versSvg(evenement.clientX, evenement.clientY);
+    if (!surSphere(pt)) return;
+    const lieu = projection.invert(pt);
+    const f = lieu && autresPays.find((x) => d3.geoContains(x, lieu));
+    if (f) toucher(f, null);
+  });
 
   // Zones tactiles de 44 px autour des pays disponibles (le Vietnam est très étroit).
   // Placées sous les pays disponibles mais au-dessus des autres : un toucher juste à côté
@@ -182,7 +225,7 @@ export function creerGlobe(svgElement, { monde, codes, listePays, surPaysDisponi
     groupes.each(function (f) {
       const groupe = d3.select(this);
       const donnees = donneesDrapeaux.get(paysDisponible(f).code);
-      const trace = chemin(f);
+      const trace = chemin(forme(f));
       groupe.attr('display', trace ? null : 'none');
       if (!trace) return;
       groupe.select('clipPath path').attr('d', trace);
@@ -217,12 +260,24 @@ export function creerGlobe(svgElement, { monde, codes, listePays, surPaysDisponi
   let paysEnVol = null;  // le pays vers lequel on s'envole garde son drapeau jusqu'au bout
 
   function dessiner() {
-    const [x, y] = projection.translate();
-    ombre.attr('cx', x + 7).attr('cy', y + 9).attr('r', projection.scale());
-    sphere.attr('d', chemin);
-    meridiens.attr('d', chemin);
-    traces.attr('d', chemin);
-    voiles.attr('d', chemin);
+    // Seuls les pays visibles sont dessinés (au zoom, la plupart sont hors de l'écran)
+    const [lambdaVue, phiVue] = projection.rotate();
+    const vue = [-lambdaVue, -phiVue];
+    // Rayon (en radians) de la partie du globe à l'écran : du centre du globe au coin le plus éloigné
+    const [tx, ty] = projection.translate();
+    const coin = Math.max(...[[0, 0], [largeur, 0], [0, hauteur], [largeur, hauteur]].map(([cx, cy]) => Math.hypot(cx - tx, cy - ty)));
+    const rayonVue = Math.asin(Math.min(1, coin / projection.scale())) + 0.02;
+    const estVisible = (g) => {
+      const { centre, rayon } = cercle(g);
+      return d3.geoDistance(centre, vue) - rayon <= rayonVue;
+    };
+    const traceVisible = (f) => {
+      const g = forme(f);
+      return estVisible(g) ? chemin(g) : null;
+    };
+    dessinerFond(estVisible);
+    traces.attr('d', traceVisible);
+    voiles.attr('d', traceVisible);
     if (drapeauxAffiches.size) dessinerDrapeaux();
     // Une zone tactile n'existe que si le pays est sur la face visible du globe
     const [lambda, phi] = projection.rotate();
@@ -236,24 +291,308 @@ export function creerGlobe(svgElement, { monde, codes, listePays, surPaysDisponi
     });
   }
 
-  function redimensionner() {
+  // Taille de la zone du globe (mise à jour au redimensionnement et au passage en plein écran)
+  let largeur = 400;
+  let hauteur = 400;
+  const centreEcran = () => (plein ? [largeur / 2, hauteur / 2] : [largeur / 2, hauteur * 0.53]);
+
+  function mesurer() {
     const { width, height } = svgElement.getBoundingClientRect();
-    echelle = Math.max(80, Math.min(width * 0.46, (height - 190) * 0.5));
-    projection.translate([width / 2, height * 0.53]);
-    if (surGlobe) projection.scale(echelle);
+    largeur = width;
+    hauteur = height;
+  }
+
+  /** Toile : ombre, sphère, méridiens et pays « Bientôt disponible », en une seule passe. */
+  function dessinerFond(estVisible) {
+    const ratio = window.devicePixelRatio || 1;
+    const [w, h] = [Math.round(largeur * ratio), Math.round(hauteur * ratio)];
+    if (toile.width !== w || toile.height !== h) {
+      toile.width = w;
+      toile.height = h;
+    }
+    contexte.setTransform(ratio, 0, 0, ratio, 0, 0);
+    contexte.clearRect(0, 0, largeur, hauteur);
+    const [x, y] = projection.translate();
+    const rayon = projection.scale();
+    contexte.beginPath();
+    contexte.arc(x + 7, y + 9, rayon, 0, 2 * Math.PI);
+    contexte.fillStyle = couleurs.encre;
+    contexte.fill();
+    contexte.beginPath();
+    crayon({ type: 'Sphere' });
+    contexte.fillStyle = couleurs.ocean;
+    contexte.fill();
+    contexte.beginPath();
+    crayon(meridiens);
+    contexte.lineWidth = 0.8;
+    contexte.strokeStyle = couleurs.ligne;
+    contexte.stroke();
+    contexte.beginPath();
+    for (const f of autresPays) {
+      const g = forme(f);
+      if (estVisible(g)) crayon(g);
+    }
+    contexte.fillStyle = couleurs.terre;
+    contexte.fill();
+    contexte.lineWidth = 0.6;
+    contexte.strokeStyle = couleurs.ocean;
+    contexte.stroke();
+    contexte.beginPath();
+    crayon({ type: 'Sphere' });
+    contexte.lineWidth = 3;
+    contexte.strokeStyle = couleurs.encre;
+    contexte.stroke();
+  }
+
+  // Un seul dessin par image affichée : sur un téléphone lent, le doigt envoie plusieurs mouvements par image
+  let dessinPrevu = false;
+  function demanderDessin() {
+    if (dessinPrevu) return;
+    dessinPrevu = true;
+    requestAnimationFrame(() => { dessinPrevu = false; dessiner(); });
+  }
+
+  function redimensionner() {
+    mesurer();
+    // En plein écran, le globe garde sa taille : seule sa place change
+    if (!plein) echelle = Math.max(80, Math.min(largeur * 0.46, (hauteur - 190) * 0.5));
+    projection.translate(centreEcran());
+    if (surGlobe) projection.scale(echelle * zoom);
     dessiner();
   }
 
-  // Rotation automatique (désactivée si le téléphone demande moins d'animations)
+  /* ---------- Zoom, façon Google Earth (REX n° 1, § 5) ---------- */
+  let zoom = 1;
+  let plein = false;
+  let mondeDetaille = null;   // contours 1/50 000 000, par identifiant de pays
+  let chargementDetail = null;
+  const forme = (f) => (zoom >= ZOOM_DETAIL && mondeDetaille?.get(f.id)) || f;
+  // Cercle qui contient un pays (centre et rayon en radians) : pour ne dessiner que les pays visibles
+  const cercles = new WeakMap();
+  function cercle(g) {
+    if (!cercles.has(g)) {
+      const centre = d3.geoCentroid(g);
+      let rayon = 0;
+      d3.geoStream(g, { point: (lon, lat) => { rayon = Math.max(rayon, d3.geoDistance(centre, [lon, lat])); }, lineStart() {}, lineEnd() {}, polygonStart() {}, polygonEnd() {}, sphere() {} });
+      cercles.set(g, { centre, rayon });
+    }
+    return cercles.get(g);
+  }
+
+  function chargerDetail() {
+    if (chargementDetail) return;
+    chargementDetail = chargerMondeDetaille()
+      .then((topo) => {
+        mondeDetaille = new Map(topojson.feature(topo, topo.objects.countries).features.map((f) => [f.id, f]));
+        dessiner();
+      })
+      .catch(() => { chargementDetail = null; });   // sans connexion : on garde les contours simples
+  }
+
+  const surSphere = ([x, y]) => {
+    const [tx, ty] = projection.translate();
+    return Math.hypot(x - tx, y - ty) < projection.scale() * 0.98;
+  };
+  const versSvg = (x, y) => {
+    const r = svgElement.getBoundingClientRect();
+    return [x - r.left, y - r.top];
+  };
+
+  /** Tourne le globe pour que le lieu « geo » se retrouve sous le point « pt » de l'écran. */
+  function placerSous(geo, pt) {
+    for (let i = 0; i < 5; i += 1) {
+      if (!surSphere(pt)) return;
+      const ici = projection.invert(pt);
+      if (!ici) return;
+      const [lambda, phi] = projection.rotate();
+      let dl = ici[0] - geo[0];
+      if (dl > 180) dl -= 360;
+      if (dl < -180) dl += 360;
+      projection.rotate([lambda + dl, Math.max(-89, Math.min(89, phi + (ici[1] - geo[1]))), 0]);
+    }
+  }
+
+  /** Plein écran (et retour), sans saut : le globe garde sa taille et glisse jusqu'au centre. */
+  function pleinEcran(actif) {
+    if (actif === plein) return;
+    const avant = svgElement.getBoundingClientRect();
+    const [tx, ty] = projection.translate();
+    const surEcran = [avant.left + tx, avant.top + ty];
+    plein = actif;
+    surPleinEcran?.(actif);   // l'application range les barres : la zone du globe change
+    mesurer();
+    const apres = svgElement.getBoundingClientRect();
+    const depart = [surEcran[0] - apres.left, surEcran[1] - apres.top];
+    const arrivee = centreEcran();
+    if (mouvementReduit()) {
+      projection.translate(arrivee);
+      dessiner();
+      return;
+    }
+    const trajet = d3.interpolate(depart, arrivee);
+    projection.translate(depart);
+    svg.transition('glisse').duration(DUREE_GLISSE).ease(d3.easeCubicOut)
+      .tween('glisse', () => (t) => { projection.translate(trajet(t)); dessiner(); });
+  }
+
+  /** Zoom vers un point de l'écran : le lieu sous le doigt (ou le curseur) y reste. */
+  function zoomerVers(k, pt, geo) {
+    zoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, k));
+    if (!plein && zoom > PLEIN_ECRAN_DEBUT) pleinEcran(true);
+    else if (plein && zoom < PLEIN_ECRAN_FIN && !glissement) pleinEcran(false);
+    projection.scale(echelle * zoom);
+    // Contours détaillés : déjà assez de points, inutile de les affiner (bien plus fluide au zoom)
+    projection.precision(zoom >= ZOOM_DETAIL && mondeDetaille ? 0 : 0.4);
+    if (geo && plein) placerSous(geo, pt);
+    if (zoom > 2) chargerDetail();
+    demanderDessin();
+    surZoom?.(zoom, ZOOM_MAX);
+  }
+
+  /** Zoom animé (boutons + et −, bouton ×). */
+  function zoomerAnime(k, duree, courbe) {
+    const pt = centreEcran();
+    const geo = surSphere(pt) ? projection.invert(pt) : null;
+    const depart = zoom;
+    const arrivee = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, k));
+    elan = null;
+    molette = null;
+    if (mouvementReduit()) {
+      zoomerVers(arrivee, pt, geo);
+      return;
+    }
+    svg.interrupt('zoom').transition('zoom').duration(duree).ease(courbe)
+      .tween('zoom', () => (t) => zoomerVers(depart * (arrivee / depart) ** t, pt, geo));
+  }
+
+  /* ---------- Gestes : glisser (avec élan), pincer, molette ---------- */
+  const pointeurs = new Map();
+  let glissement = false;     // un doigt (ou la souris) est posé sur le globe
+  let depart = null;          // début du glissement : position et rotation
+  let pince = null;           // début du pincement : écart des doigts, zoom, lieu entre les doigts
+  let annulerClic = false;    // un glissement ou un pincement n'est jamais pris pour un toucher
+  let vitesse = [0, 0];
+  let dernier = null;
+  let elan = null;
+  let molette = null;
+
+  const milieu = () => {
+    const [a, b] = [...pointeurs.values()];
+    return [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+  };
+  const ecart = () => {
+    const [a, b] = [...pointeurs.values()];
+    return Math.hypot(a[0] - b[0], a[1] - b[1]);
+  };
+  const reprendreGlissement = () => {
+    const [p] = [...pointeurs.values()];
+    depart = { x: p[0], y: p[1], rotation: projection.rotate() };
+    dernier = { t: performance.now(), rotation: projection.rotate() };
+    vitesse = [0, 0];
+  };
+
+  svgElement.addEventListener('pointerdown', (evenement) => {
+    if (!surGlobe || evenement.button > 0) return;
+    pointeurs.set(evenement.pointerId, [evenement.clientX, evenement.clientY]);
+    pause();
+    elan = null;
+    molette = null;
+    svg.interrupt('zoom');
+    if (pointeurs.size === 1) {
+      glissement = true;
+      annulerClic = false;
+      reprendreGlissement();
+    } else if (pointeurs.size === 2) {
+      const m = versSvg(...milieu());
+      pince = { ecart: ecart(), zoom, geo: surSphere(m) ? projection.invert(m) : null };
+      annulerClic = true;
+    }
+  });
+
+  window.addEventListener('pointermove', (evenement) => {
+    if (!pointeurs.has(evenement.pointerId) || !surGlobe) return;
+    pointeurs.set(evenement.pointerId, [evenement.clientX, evenement.clientY]);
+    if (pointeurs.size >= 2 && pince) {
+      zoomerVers(pince.zoom * (ecart() / pince.ecart), versSvg(...milieu()), pince.geo);
+      return;
+    }
+    if (pointeurs.size !== 1 || !depart) return;
+    // La vitesse de rotation dépend du zoom : plus on est près, plus elle est précise
+    const k = 75 / projection.scale();
+    const dx = evenement.clientX - depart.x;
+    const dy = evenement.clientY - depart.y;
+    if (Math.hypot(dx, dy) > SEUIL_GLISSEMENT) annulerClic = true;
+    projection.rotate([depart.rotation[0] + dx * k, Math.max(-89, Math.min(89, depart.rotation[1] - dy * k)), 0]);
+    demanderDessin();
+    const maintenant = performance.now();
+    const dt = maintenant - dernier.t;
+    if (dt > 0) {
+      const r = projection.rotate();
+      vitesse = [0.7 * vitesse[0] + (0.3 * (r[0] - dernier.rotation[0])) / dt, 0.7 * vitesse[1] + (0.3 * (r[1] - dernier.rotation[1])) / dt];
+      dernier = { t: maintenant, rotation: r };
+    }
+  });
+
+  const relacher = (evenement) => {
+    if (!pointeurs.delete(evenement.pointerId)) return;
+    if (pointeurs.size < 2) pince = null;
+    if (pointeurs.size === 1) reprendreGlissement();
+    if (pointeurs.size > 0) return;
+    glissement = false;
+    depart = null;
+    pause();
+    // Lancer le globe : il continue sur sa lancée, puis ralentit
+    if (!mouvementReduit() && dernier && performance.now() - dernier.t < 80 && Math.hypot(...vitesse) > 0.01) elan = { v: vitesse.slice() };
+    if (plein && zoom < PLEIN_ECRAN_FIN) pleinEcran(false);
+  };
+  window.addEventListener('pointerup', relacher);
+  window.addEventListener('pointercancel', relacher);
+  // Un glissement ou un pincement ne déclenche jamais le toucher d'un pays
+  svgElement.addEventListener('click', (evenement) => {
+    if (!annulerClic) return;
+    evenement.stopPropagation();
+    evenement.preventDefault();
+    annulerClic = false;
+  }, true);
+
+  // Molette (ordinateur) : zoom doux vers le curseur
+  svgElement.addEventListener('wheel', (evenement) => {
+    if (!surGlobe) return;
+    evenement.preventDefault();
+    pause();
+    const pt = versSvg(evenement.clientX, evenement.clientY);
+    const maintenant = performance.now();
+    if (!molette || maintenant - molette.t > 250) molette = { cible: zoom, pt, geo: surSphere(pt) ? projection.invert(pt) : null };
+    molette.t = maintenant;
+    molette.pt = pt;
+    molette.cible = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, molette.cible * Math.exp(-evenement.deltaY * 0.002)));
+  }, { passive: false });
+
+  // Une seule horloge : molette, élan, rotation automatique
   let enRotation = true;
   let minuterieReprise;
   let precedent = null;
   const minuterie = d3.timer((ecoule) => {
-    const dt = precedent === null ? 0 : (ecoule - precedent) / 1000;
+    const dt = precedent === null ? 0 : Math.min(48, ecoule - precedent);
     precedent = ecoule;
-    if (!enRotation || !surGlobe || mouvementReduit()) return;
+    if (!surGlobe) return;
+    if (molette && Math.abs(molette.cible - zoom) > 0.002) {
+      zoomerVers(zoom + (molette.cible - zoom) * Math.min(1, dt / 70), molette.pt, molette.geo);
+      return;
+    }
+    if (elan && !glissement) {
+      const [lambda, phi] = projection.rotate();
+      projection.rotate([lambda + elan.v[0] * dt, Math.max(-89, Math.min(89, phi + elan.v[1] * dt)), 0]);
+      const amorti = Math.exp(-dt / AMORTI_ELAN);
+      elan.v = [elan.v[0] * amorti, elan.v[1] * amorti];
+      if (Math.hypot(...elan.v) < ARRET_ELAN) elan = null;
+      dessiner();
+      return;
+    }
+    // Rotation automatique : arrêtée dès que le zoom dépasse ×1,05, et si le téléphone demande moins d'animations
+    if (!enRotation || glissement || zoom > 1.05 || mouvementReduit()) return;
     const [lambda, phi, gamma] = projection.rotate();
-    projection.rotate([lambda + VITESSE * Math.min(dt, 0.1), phi, gamma]);
+    projection.rotate([lambda + (VITESSE * dt) / 1000, phi, gamma]);
     dessiner();
   });
 
@@ -262,19 +601,6 @@ export function creerGlobe(svgElement, { monde, codes, listePays, surPaysDisponi
     clearTimeout(minuterieReprise);
     minuterieReprise = setTimeout(() => { enRotation = true; }, REPRISE);
   }
-
-  // Rotation au doigt et à la souris. Un glissement n'est jamais pris pour un toucher.
-  svg.call(d3.drag()
-    .clickDistance(SEUIL_GLISSEMENT)
-    .filter((evenement) => surGlobe && !evenement.button)
-    .on('start', pause)
-    .on('drag', (evenement) => {
-      const k = 75 / projection.scale();
-      const [lambda, phi, gamma] = projection.rotate();
-      projection.rotate([lambda + evenement.dx * k, Math.max(-75, Math.min(75, phi - evenement.dy * k)), gamma]);
-      dessiner();
-    })
-    .on('end', pause));
 
   /** Anime la projection vers une rotation et une échelle (immédiat si mouvement réduit). */
   function animer(rotation, echelleCible, duree, courbe, immediat = false) {
@@ -330,6 +656,15 @@ export function creerGlobe(svgElement, { monde, codes, listePays, surPaysDisponi
     if (paysEnVol) return;
     paysEnVol = f;
     surGlobe = false;
+    elan = null;
+    molette = null;
+    svg.interrupt('zoom');
+    if (plein) {
+      plein = false;
+      surPleinEcran?.(false);
+      mesurer();
+      projection.translate(centreEcran());
+    }
     // Les autres pays reprennent leur couleur (un survol en cours, par exemple)
     tracesDisponibles.filter((x) => x !== f).each(function (x) { afficherDrapeau(this, x, false); });
     const reduit = immediat || mouvementReduit();
@@ -338,6 +673,7 @@ export function creerGlobe(svgElement, { monde, codes, listePays, surPaysDisponi
     const [lon, lat] = d3.geoCentroid(f);
     await animer([-lon, -lat, 0], echelle * ZOOM_ENVOL, DUREE_ENVOL, d3.easeCubicInOut, reduit);
     svgElement.classList.add('fade');
+    toile.classList.add('fade');
     svgElement.parentElement.inert = true;   // le globe caché n'est plus atteignable au clavier
     if (!reduit) await attendre(DUREE_FONDU);
     afficherDrapeau(element, f, false);
@@ -356,11 +692,20 @@ export function creerGlobe(svgElement, { monde, codes, listePays, surPaysDisponi
     /** Retour sur le globe : réapparition et dézoom. */
     async revenir() {
       svgElement.classList.remove('fade');
+      toile.classList.remove('fade');
       svgElement.parentElement.inert = false;
+      zoom = 1;
+      surZoom?.(zoom, ZOOM_MAX);
       await animer(projection.rotate(), echelle, DUREE_RETOUR, d3.easeCubicOut);
       surGlobe = true;
       enRotation = true;
     },
+
+    /** Boutons + et − : ×1,8 vers le centre de l'écran. */
+    zoomerPlus() { if (surGlobe) zoomerAnime(zoom * ZOOM_BOUTON, DUREE_ZOOM_BOUTON, d3.easeCubicOut); },
+    zoomerMoins() { if (surGlobe) zoomerAnime(zoom / ZOOM_BOUTON, DUREE_ZOOM_BOUTON, d3.easeCubicOut); },
+    /** Bouton × du plein écran : retour au globe entier. */
+    dezoomer() { if (surGlobe) zoomerAnime(1, DUREE_DEZOOM, d3.easeCubicInOut); },
 
     arreter() {
       minuterie.stop();

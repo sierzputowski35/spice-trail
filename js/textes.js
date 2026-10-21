@@ -13,6 +13,9 @@ export const textes = {
     description: 'Globe terrestre. Faites-le tourner du doigt et touchez un pays.',
     ouvrirPays: (nom) => `Découvrir la cuisine : ${nom}`,
     bientot: (nom) => `${nom} · Bientôt disponible`,
+    zoomPlus: 'Zoomer',
+    zoomMoins: 'Dézoomer',
+    zoomRetour: 'Revenir au globe entier',
   },
 
   // Pays de la carte du monde sans code ISO : leur nom en français

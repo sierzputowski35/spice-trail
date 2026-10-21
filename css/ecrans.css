@@ -34,12 +34,19 @@ body { overflow: hidden; }
   max-width: none;
   transition: opacity .45s ease;
 }
-#stage svg.fade { opacity: 0; pointer-events: none; }
+#stage svg.fade,
+#stage canvas.fade { opacity: 0; pointer-events: none; }
+/* Toile du globe (sphère, méridiens, pays « Bientôt disponible ») : sous le SVG, sans toucher propre */
+#stage canvas.globe-fond {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  transition: opacity .45s ease;
+}
 
 /* ---------- Globe ---------- */
-.globe-shadow { fill: var(--shadow-ink); }
-.sphere { fill: var(--ocean); stroke: var(--shadow-ink); stroke-width: 3; }
-.grat { fill: none; stroke: var(--ocean-line); stroke-width: .8; }
 .country {
   fill: var(--land-soon);
   stroke: var(--ocean);
@@ -200,6 +207,70 @@ body { overflow: hidden; }
   color: var(--fg);
   font-weight: 500;
 }
+
+/* ---------- Zoom du globe (REX n° 1, § 5) ---------- */
+#zoom-globe[hidden] { display: none; }
+.zoom-boutons {
+  position: absolute;
+  z-index: 5;
+  right: max(12px, env(safe-area-inset-right, 0px));
+  top: 50%;
+  transform: translateY(-50%);
+  display: grid;
+  gap: 8px;
+}
+.zoom-boutons .round,
+#zoom-retour {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  border-radius: 20px;
+}
+/* Zone de toucher de 44 px autour des boutons ronds de 40 px */
+.zoom-boutons .round::after,
+#zoom-retour::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+}
+.zoom-boutons svg,
+#zoom-retour svg { width: 18px; height: 18px; }
+#zoom-retour {
+  position: absolute;
+  z-index: 5;
+  top: calc(env(safe-area-inset-top, 0px) + 12px);
+  left: max(12px, env(safe-area-inset-left, 0px));
+  display: none;
+}
+.zoom-jauge {
+  position: absolute;
+  z-index: 5;
+  right: max(26px, calc(env(safe-area-inset-right, 0px) + 26px));
+  top: calc(50% + 58px);
+  width: 12px;
+  height: 90px;
+  border: 2px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  overflow: hidden;
+  display: none;
+}
+.zoom-jauge i {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 0;
+  background: var(--sun);
+}
+/* Plein écran : le globe occupe tout l'écran, les barres s'effacent */
+#app.globe-plein { background: var(--globe-full-bg); }
+#app.globe-plein #stage { bottom: 0; }
+#app.globe-plein #tabbar { transform: translateY(110%); }
+#app.globe-plein #intro,
+#app.globe-plein #topbar { visibility: hidden; }
+#app.globe-plein #zoom-retour { display: grid; }
+#app.globe-plein .zoom-jauge { display: block; }
 
 /* ---------- Panneau de fiche ---------- */
 #sheet {

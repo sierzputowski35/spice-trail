@@ -28,6 +28,9 @@ export const chargerMonde = () => charger('data/geo/monde-110m.json');
 /** Table code ISO numérique → code à deux lettres (« 156 » → « CN ») */
 export const chargerCodesIso = () => charger('data/geo/codes-iso.json');
 
+/** Contours détaillés du monde (1/50 000 000), pour le zoom du globe : chargés au premier zoom au-delà de ×2. */
+export const chargerMondeDetaille = () => charger('data/geo/monde-50m.json');
+
 /** Drapeau d'un pays pour le globe : fond et emblème déjà placés (outils/preparer_drapeaux.mjs). */
 export const chargerDrapeau = (code) => charger(`data/geo/drapeaux/${code}.json`);
 

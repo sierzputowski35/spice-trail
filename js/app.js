@@ -15,6 +15,9 @@ import { remplacerImagesManquantes, nomLieu } from './outils.js';
 const $ = (selecteur) => document.querySelector(selecteur);
 
 const ICONES = {
+  plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>',
+  moins: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"/></svg>',
+  fermer: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>',
   aPropos: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg>',
   retour: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>',
   explorer: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.5 3 14.5 0 18M12 3c-3 3.5-3 14.5 0 18"/></svg>',
@@ -50,6 +53,15 @@ function construireEcran(listePays) {
     <div id="stage">
       <div class="couche"><svg id="globe"></svg></div>
       <div class="couche" inert><svg id="map" class="fade"></svg></div>
+    </div>
+
+    <div id="zoom-globe">
+      <button class="round" id="zoom-retour" aria-label="${textes.globe.zoomRetour}">${ICONES.fermer}</button>
+      <div class="zoom-boutons">
+        <button class="round" id="zoom-plus" aria-label="${textes.globe.zoomPlus}">${ICONES.plus}</button>
+        <button class="round" id="zoom-moins" aria-label="${textes.globe.zoomMoins}">${ICONES.moins}</button>
+      </div>
+      <div class="zoom-jauge" aria-hidden="true"><i id="zoom-niveau"></i></div>
     </div>
 
     <div id="intro">
@@ -149,6 +161,7 @@ function corrigerAdresse(adresse) {
 
 function montrerAccueil(visible) {
   $('#intro').hidden = !visible;
+  $('#zoom-globe').hidden = !visible;
 }
 
 function mettreAJourTitre() {
@@ -410,7 +423,13 @@ async function demarrer() {
       listePays,
       surPaysDisponible: (pays) => naviguer(adresseDe({ pays })),
       surPaysBientot: (nom) => afficherMessage(textes.globe.bientot(nom)),
+      // Plein écran du globe (REX n° 1, § 5.2) : les barres s'effacent, bouton × et jauge apparaissent
+      surPleinEcran: (actif) => $('#app').classList.toggle('globe-plein', actif),
+      surZoom: (niveau, maximum) => { $('#zoom-niveau').style.height = `${((Math.log(niveau) / Math.log(maximum)) * 100).toFixed(1)}%`; },
     });
+    $('#zoom-plus').addEventListener('click', () => globe.zoomerPlus());
+    $('#zoom-moins').addEventListener('click', () => globe.zoomerMoins());
+    $('#zoom-retour').addEventListener('click', () => globe.dezoomer());
     panneau = creerPanneau($('#app'), {
       scene: () => $('#stage'),
       surRecette: ouvrirRecetteDepuis,
