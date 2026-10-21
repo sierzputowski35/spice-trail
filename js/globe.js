@@ -25,7 +25,12 @@ const ZOOM_DETAIL = 3;           // contours détaillés à partir de ×3 (charg
 const ZOOM_REGIONS = [4, 8];     // régions culinaires : invisibles à ×4, entières à ×8
 const ZOOM_CHARGER_REGIONS = 3;  // fichier des régions chargé dès que le pays approche du centre
 const ZOOM_ENTRER = 4;           // étiquette « Entrer » à partir de ×4, entrée automatique à ×12
-const ZOOM_BOUTON = 1.8;         // boutons + et − : ×1,8 en 0,42 s
+const ZOOM_BOUTON = 1.8;
+// Roulette « Surprends-moi » (REX n° 1, § 6)
+const DUREE_ROULETTE = 5000;     // 5 s, ralentissement « puissance 4 »
+const TOURS_ROULETTE = 3;        // au moins 3 tours complets vers l'est
+const ZOOM_ROULETTE = 1.35;      // léger zoom, sans passer en plein écran
+const PAS_VIBRATION = 30;        // une petite vibration tous les 30° (Android)         // boutons + et − : ×1,8 en 0,42 s
 const DUREE_ZOOM_BOUTON = 420;
 const DUREE_DEZOOM = 700;        // bouton × : retour au globe entier
 const DUREE_GLISSE = 380;        // passage en plein écran : le globe glisse jusqu'au centre
@@ -51,7 +56,7 @@ function nomFrancais(pays, codes) {
  * options.surPaysDisponible(pays) : toucher d'un pays disponible (pays de data/pays.json)
  * options.surPaysBientot(nom)     : toucher d'un autre pays (nom en français)
  */
-export function creerGlobe(svgElement, { monde, codes, listePays, surPaysDisponible, surPaysBientot, surPleinEcran, surZoom, surPaysAuCentre, surEntree }) {
+export function creerGlobe(svgElement, { monde, codes, listePays, surPaysDisponible, surPaysBientot, surPleinEcran, surZoom, surPaysAuCentre, surEntree, surFinSurprise }) {
   const disponibles = new Map(listePays.map((p) => [p.code.toUpperCase(), p]));
   const paysDisponible = (f) => disponibles.get(codes[String(f.id)]);
   const pays = topojson.feature(monde, monde.objects.countries).features;
@@ -314,7 +319,9 @@ export function creerGlobe(svgElement, { monde, codes, listePays, surPaysDisponi
   // Taille de la zone du globe (mise à jour au redimensionnement et au passage en plein écran)
   let largeur = 400;
   let hauteur = 400;
-  const centreEcran = () => (plein ? [largeur / 2, hauteur / 2] : [largeur / 2, hauteur * 0.53]);
+  // Après la roulette, le globe remonte : le pays tiré reste visible au-dessus du bouton et de la carte de résultat
+  let globeRemonte = false;
+  const centreEcran = () => (plein ? [largeur / 2, hauteur / 2] : [largeur / 2, hauteur * (globeRemonte ? 0.36 : 0.53)]);
 
   function mesurer() {
     const { width, height } = svgElement.getBoundingClientRect();
@@ -368,6 +375,91 @@ export function creerGlobe(svgElement, { monde, codes, listePays, surPaysDisponi
     paysAuCentre = null;
     surPaysAuCentre?.(null);
     surEntree?.(p);
+  }
+
+  /* ---------- Roulette « Surprends-moi » (REX n° 1, § 6) ---------- */
+  let rouletteEnCours = false;
+  let drapeauRoulette = null;   // pays où la roulette s'est arrêtée : son drapeau reste jusqu'au prochain contact
+  /** Premier contact après la roulette : le drapeau s'efface, la carte de résultat se ferme, le globe redescend. */
+  function effacerDrapeauRoulette() {
+    if (!drapeauRoulette && !globeRemonte) return;
+    const f = drapeauRoulette;
+    drapeauRoulette = null;
+    if (f) afficherDrapeau(tracesDisponibles.filter((x) => x === f).node(), f, false);
+    if (globeRemonte) {
+      globeRemonte = false;
+      glisserVers(centreEcran());
+      surFinSurprise?.();
+    }
+  }
+
+  /** Le globe glisse jusqu'à une nouvelle place à l'écran (0,38 s). */
+  function glisserVers(arrivee) {
+    if (mouvementReduit()) {
+      projection.translate(arrivee);
+      dessiner();
+      return;
+    }
+    const trajet = d3.interpolate(projection.translate(), arrivee);
+    svg.transition('glisse').duration(DUREE_GLISSE).ease(d3.easeCubicOut)
+      .tween('glisse', () => (t) => { projection.translate(trajet(t)); dessiner(); });
+  }
+
+  /**
+   * Au moins trois tours vers l'est, puis ralentissement jusqu'au pays (5 s), avec un léger zoom ;
+   * à l'arrivée, son drapeau et sa vignette. Mouvement réduit : arrivée immédiate.
+   */
+  async function lancerRoulette(code) {
+    const f = tracesDisponibles.data().find((x) => paysDisponible(x).code === code);
+    if (!f || !surGlobe || rouletteEnCours || plein) return false;
+    rouletteEnCours = true;
+    effacerDrapeauRoulette();
+    pause();
+    elan = null;
+    molette = null;
+    svg.interrupt('zoom');
+    // Point d'arrivée : l'emblème du drapeau (ou le centre du pays)
+    let cible = d3.geoCentroid(f);
+    try { cible = (await chargerDrapeau(code)).ancre || cible; } catch { /* sans connexion : centre du pays */ }
+    const [lambda0, phi0] = projection.rotate();
+    let lambda1 = -cible[0];
+    while (lambda1 < lambda0 + 360 * TOURS_ROULETTE) lambda1 += 360;
+    const rotation = d3.interpolate([lambda0, phi0], [lambda1, -cible[1]]);
+    const [z0, z1] = [zoom, Math.min(zoom > ZOOM_ROULETTE ? zoom : ZOOM_ROULETTE, PLEIN_ECRAN_DEBUT)];
+    globeRemonte = true;
+    const translation = d3.interpolate(projection.translate(), centreEcran());
+    const etape = (t) => {
+      const [l, p] = rotation(t);
+      projection.rotate([l, p, 0]);
+      projection.translate(translation(Math.min(1, t * 4)));   // le globe remonte dès le début de la roulette
+      zoom = z0 + (z1 - z0) * t;
+      projection.scale(echelle * zoom);
+      dessiner();
+    };
+    if (mouvementReduit()) {
+      etape(1);
+    } else {
+      let dernierCran = Math.floor(lambda0 / PAS_VIBRATION);
+      await new Promise((fin) => {
+        svg.transition('roulette').duration(DUREE_ROULETTE).ease(d3.easePolyOut.exponent(4))
+          .tween('roulette', () => (t) => {
+            etape(t);
+            const cran = Math.floor(projection.rotate()[0] / PAS_VIBRATION);
+            if (cran !== dernierCran) {
+              dernierCran = cran;
+              if (t < 0.9) navigator.vibrate?.(4);
+            }
+          })
+          .on('end interrupt', fin);
+      });
+      etape(1);
+    }
+    surZoom?.(zoom, ZOOM_MAX);
+    rouletteEnCours = false;
+    pause();
+    drapeauRoulette = f;
+    afficherDrapeau(tracesDisponibles.filter((x) => x === f).node(), f, true);
+    return true;
   }
 
   /** Toile : ombre, sphère, méridiens et pays « Bientôt disponible », en une seule passe. */
@@ -487,6 +579,11 @@ export function creerGlobe(svgElement, { monde, codes, listePays, surPaysDisponi
     const [tx, ty] = projection.translate();
     const surEcran = [avant.left + tx, avant.top + ty];
     plein = actif;
+    if (actif && globeRemonte) {
+      globeRemonte = false;
+      drapeauRoulette = null;
+      surFinSurprise?.();
+    }
     surPleinEcran?.(actif);   // l'application range les barres : la zone du globe change
     mesurer();
     const apres = svgElement.getBoundingClientRect();
@@ -521,6 +618,7 @@ export function creerGlobe(svgElement, { monde, codes, listePays, surPaysDisponi
 
   /** Zoom animé (boutons + et −, bouton ×). */
   function zoomerAnime(k, duree, courbe) {
+    if (rouletteEnCours) return;
     const pt = centreEcran();
     const geo = surSphere(pt) ? projection.invert(pt) : null;
     const depart = zoom;
@@ -562,7 +660,8 @@ export function creerGlobe(svgElement, { monde, codes, listePays, surPaysDisponi
   };
 
   svgElement.addEventListener('pointerdown', (evenement) => {
-    if (!surGlobe || entreeEnCours || evenement.button > 0) return;
+    if (!surGlobe || entreeEnCours || rouletteEnCours || evenement.button > 0) return;
+    effacerDrapeauRoulette();
     pointeurs.set(evenement.pointerId, [evenement.clientX, evenement.clientY]);
     pause();
     elan = null;
@@ -627,7 +726,7 @@ export function creerGlobe(svgElement, { monde, codes, listePays, surPaysDisponi
 
   // Molette (ordinateur) : zoom doux vers le curseur
   svgElement.addEventListener('wheel', (evenement) => {
-    if (!surGlobe || entreeEnCours) return;
+    if (!surGlobe || entreeEnCours || rouletteEnCours) return;
     evenement.preventDefault();
     pause();
     const pt = versSvg(evenement.clientX, evenement.clientY);
@@ -660,7 +759,7 @@ export function creerGlobe(svgElement, { monde, codes, listePays, surPaysDisponi
       return;
     }
     // Rotation automatique : arrêtée dès que le zoom dépasse ×1,05, et si le téléphone demande moins d'animations
-    if (!enRotation || glissement || zoom > 1.05 || mouvementReduit()) return;
+    if (!enRotation || glissement || rouletteEnCours || zoom > 1.05 || mouvementReduit()) return;
     const [lambda, phi, gamma] = projection.rotate();
     projection.rotate([lambda + (VITESSE * dt) / 1000, phi, gamma]);
     dessiner();
@@ -726,6 +825,8 @@ export function creerGlobe(svgElement, { monde, codes, listePays, surPaysDisponi
     if (paysEnVol) return;
     paysEnVol = f;
     surGlobe = false;
+    drapeauRoulette = null;
+    globeRemonte = false;
     elan = null;
     molette = null;
     svg.interrupt('zoom');
@@ -778,6 +879,8 @@ export function creerGlobe(svgElement, { monde, codes, listePays, surPaysDisponi
     zoomerMoins() { if (surGlobe) zoomerAnime(zoom / ZOOM_BOUTON, DUREE_ZOOM_BOUTON, d3.easeCubicOut); },
     /** Bouton « Entrer » : entrée dans le pays au centre de l'écran. */
     entrer,
+    /** Roulette « Surprends-moi » vers un pays ; résolue à l'arrivée (faux si elle n'a pas pu tourner). */
+    lancerRoulette,
     /** Bouton × du plein écran : retour au globe entier. */
     dezoomer() { if (surGlobe) zoomerAnime(1, DUREE_DEZOOM, d3.easeCubicInOut); },
 

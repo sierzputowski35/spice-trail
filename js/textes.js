@@ -9,6 +9,13 @@ export const textes = {
     invitation: 'Faites tourner le globe et touchez un pays pour découvrir sa cuisine.',
   },
 
+  // Roulette « Surprends-moi » (REX n° 1, § 6)
+  surprise: {
+    bouton: 'Surprends-moi',
+    voirRecette: 'Voir la recette',
+    recetteDe: (lieu) => `Une recette de ${lieu}`,
+  },
+
   globe: {
     description: 'Globe terrestre. Faites-le tourner du doigt et touchez un pays.',
     ouvrirPays: (nom) => `Découvrir la cuisine : ${nom}`,

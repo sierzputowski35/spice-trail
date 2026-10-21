@@ -328,6 +328,99 @@ body { overflow: hidden; }
 @keyframes envahir {
   to { clip-path: circle(150vmax at 50% 50%); }
 }
+/* « Surprends-moi » (REX n° 1, § 6) : le bouton sous le globe, la carte de résultat qui monte dessous */
+#surprise {
+  position: absolute;
+  z-index: 5;
+  left: max(16px, env(safe-area-inset-left, 0px));
+  right: max(16px, env(safe-area-inset-right, 0px));
+  bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px) + 14px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  pointer-events: none;
+}
+#surprise[hidden] { display: none; }
+#surprise > * { pointer-events: auto; }
+.bouton-surprise {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 24px;
+  border: 2px solid var(--border);
+  border-radius: 999px;
+  background: var(--fg);
+  color: var(--bg);
+  box-shadow: var(--hard-lg);
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -.01em;
+  transition: transform .18s cubic-bezier(.3, 1.7, .5, 1);
+}
+.bouton-surprise svg { width: 24px; height: 24px; }
+.bouton-surprise:active { transform: scale(.94); }
+.bouton-surprise[disabled] { opacity: .75; cursor: progress; }
+.bouton-surprise.tourne svg { animation: tourner .6s linear infinite; }
+@keyframes tourner { to { transform: rotate(360deg); } }
+.carte-surprise {
+  width: min(100%, 420px);
+  display: grid;
+  gap: 6px;
+  padding: 18px;
+  border: 2px solid var(--border);
+  border-radius: 22px;
+  background: var(--surface);
+  color: var(--fg);
+  box-shadow: var(--hard-lg);
+}
+.carte-surprise[hidden] { display: none; }
+.carte-surprise.monte { animation: monter .4s cubic-bezier(.3, 1.7, .5, 1); }
+@keyframes monter {
+  from { transform: translateY(24px); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+.surprise-pays {
+  justify-self: start;
+  padding: 5px 10px;
+  border: 2px solid var(--border);
+  border-radius: 999px;
+  background: var(--couleur-etiquette);
+  color: var(--on-accent);
+  box-shadow: var(--hard);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  transform: rotate(-3deg);
+}
+.surprise-plat {
+  margin: 6px 0 0;
+  font-family: var(--font-display);
+  font-size: clamp(28px, 8vw, 38px);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -.02em;
+  text-wrap: balance;
+}
+.surprise-resume { margin: 0; color: var(--muted); }
+.surprise-voir {
+  justify-self: start;
+  min-height: 44px;
+  margin-top: 6px;
+  padding: 9px 16px;
+  border: 2px solid var(--border);
+  border-radius: 999px;
+  background: var(--sun);
+  color: var(--on-sun);
+  box-shadow: var(--hard);
+  font-size: 14px;
+  font-weight: 700;
+}
+#app.globe-plein #surprise { display: none; }
+#intro { transition: opacity .3s; }
+#intro.efface { opacity: 0; }
 /* Plein écran : le globe occupe tout l'écran, les barres s'effacent */
 #app.globe-plein { background: var(--globe-full-bg); }
 #app.globe-plein #stage { bottom: 0; }

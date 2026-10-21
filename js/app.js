@@ -4,7 +4,7 @@ import { textes } from './textes.js';
 import { chargerListePays, chargerMonde, chargerCodesIso, chargerPays, chargerRegions, trouverRecette } from './donnees.js';
 import { creerGlobe } from './globe.js';
 import { creerCarte } from './carte.js';
-import { appliquerCouleurPays, retirerCouleurPays, mettreAJourBarreEtat } from './couleurs.js';
+import { appliquerCouleurPays, retirerCouleurPays, mettreAJourBarreEtat, versionLisible } from './couleurs.js';
 import { creerPanneau } from './panneau.js';
 import { creerEcranRecette } from './recette.js';
 import { creerEcranRecherche } from './recherche.js';
@@ -17,6 +17,7 @@ const $ = (selecteur) => document.querySelector(selecteur);
 const DUREE_INVASION = 550;   // entrée par le zoom : la couleur du pays envahit l'écran (REX n° 1, § 5.5)
 
 const ICONES = {
+  cible: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M12 3v4M12 17v4M3 12h4M17 12h4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><circle cx="12" cy="12" r="2.4" fill="currentColor"/></svg>',
   plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>',
   moins: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"/></svg>',
   fermer: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>',
@@ -70,6 +71,16 @@ function construireEcran(listePays) {
       </div>
     </div>
     <div id="invasion" aria-hidden="true" hidden></div>
+
+    <div id="surprise">
+      <button class="bouton-surprise" id="surprise-bouton">${ICONES.cible}${textes.surprise.bouton}</button>
+      <div class="carte-surprise" id="surprise-carte" role="status" hidden>
+        <span class="surprise-pays" id="surprise-pays"></span>
+        <p class="surprise-plat" id="surprise-plat"></p>
+        <p class="surprise-resume" id="surprise-resume"></p>
+        <button class="surprise-voir" id="surprise-voir">${textes.surprise.voirRecette}</button>
+      </div>
+    </div>
 
     <div id="intro">
       <span class="sticker tilt-l">${t.etiquette}</span>
@@ -168,7 +179,10 @@ function corrigerAdresse(adresse) {
 
 function montrerAccueil(visible) {
   $('#intro').hidden = !visible;
+  $('#intro').classList.remove('efface');
   $('#zoom-globe').hidden = !visible;
+  $('#surprise').hidden = !visible;
+  if (!visible) $('#surprise-carte').hidden = true;
 }
 
 function mettreAJourTitre() {
@@ -226,6 +240,60 @@ function terminerInvasion() {
     invasion.hidden = true;
     invasion.classList.remove('envahit', 'disparait');
   }, 300);
+}
+
+/**
+ * « Surprends-moi » (REX n° 1, § 6) : un pays disponible au hasard (jamais le même deux fois de suite)
+ * et une de ses recettes au hasard ; le globe tourne jusqu'à lui, puis la carte de résultat monte.
+ */
+let dernierPaysSurprise = null;
+let recetteSurprise = null;
+const auHasard = (liste) => liste[Math.floor(Math.random() * liste.length)];
+
+/** Courte description d'une recette : le résumé du plat dans les fiches de son pays, sinon son lieu d'origine. */
+function resumeRecette(contenus, recette) {
+  const lieux = [contenus.pays, ...Object.values(contenus.regions || {}), ...Object.values(contenus.villes || {})];
+  for (const lieu of lieux) {
+    const plat = (lieu.plats_emblematiques || []).find((p) => p.recette === recette.id && p.resume);
+    if (plat) return plat.resume;
+  }
+  const { ville, region } = recette.origine || {};
+  const lieu = (ville && contenus.villes[ville]) || (region && contenus.regions[region]);
+  return textes.surprise.recetteDe(lieu ? nomLieu(lieu) : contenus.pays.nom);
+}
+
+async function surprendre() {
+  const bouton = $('#surprise-bouton');
+  if (bouton.disabled) return;
+  const pays = auHasard(listePays.filter((p) => p.code !== dernierPaysSurprise));
+  dernierPaysSurprise = pays.code;
+  $('#surprise-carte').hidden = true;
+  $('#intro').classList.add('efface');   // le globe remonte pendant la roulette : le texte d'accueil s'efface
+  bouton.disabled = true;
+  bouton.classList.add('tourne');
+  const [arrive, contenus] = await Promise.all([globe.lancerRoulette(pays.code), chargerPays(pays).catch(() => null)]);
+  bouton.disabled = false;
+  bouton.classList.remove('tourne');
+  if (!arrive) {
+    $('#intro').classList.remove('efface');
+    return;
+  }
+  if (!contenus) {
+    afficherMessage(textes.erreurs.chargement);
+    return;
+  }
+  const recette = auHasard(Object.values(contenus.recettes));
+  recetteSurprise = recette.id;
+  const etiquette = $('#surprise-pays');
+  etiquette.textContent = pays.nom;
+  etiquette.style.setProperty('--couleur-etiquette', versionLisible(pays.couleur));   // couleur du pays, assombrie pour le texte blanc
+  $('#surprise-plat').textContent = recette.nom;
+  $('#surprise-resume').textContent = resumeRecette(contenus, recette);
+  const carte = $('#surprise-carte');
+  carte.hidden = false;
+  carte.classList.remove('monte');
+  void carte.offsetWidth;   // rejoue l'animation de montée
+  carte.classList.add('monte');
 }
 
 /** Entre dans un pays : envol depuis le globe, ou changement direct de pays. */
@@ -474,8 +542,15 @@ async function demarrer() {
         $('#entrer-bouton').setAttribute('aria-label', textes.globe.entrerDans(pays.nom));
       },
       surEntree: entrerParZoom,
+      // Premier contact après « Surprends-moi » : la carte de résultat se ferme, le texte d'accueil revient
+      surFinSurprise: () => {
+        $('#surprise-carte').hidden = true;
+        $('#intro').classList.remove('efface');
+      },
     });
     $('#entrer-bouton').addEventListener('click', () => globe.entrer());
+    $('#surprise-bouton').addEventListener('click', surprendre);
+    $('#surprise-voir').addEventListener('click', () => { if (recetteSurprise) naviguer(`#/recette/${recetteSurprise}`); });
     $('#zoom-plus').addEventListener('click', () => globe.zoomerPlus());
     $('#zoom-moins').addEventListener('click', () => globe.zoomerMoins());
     $('#zoom-retour').addEventListener('click', () => globe.dezoomer());
