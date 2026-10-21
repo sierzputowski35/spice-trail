@@ -16,6 +16,8 @@ export const textes = {
     zoomPlus: 'Zoomer',
     zoomMoins: 'Dézoomer',
     zoomRetour: 'Revenir au globe entier',
+    entrer: 'Entrer',
+    entrerDans: (nom) => `Entrer dans la cuisine : ${nom}`,
   },
 
   // Pays de la carte du monde sans code ISO : leur nom en français

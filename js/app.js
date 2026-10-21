@@ -14,6 +14,8 @@ import { remplacerImagesManquantes, nomLieu } from './outils.js';
 
 const $ = (selecteur) => document.querySelector(selecteur);
 
+const DUREE_INVASION = 550;   // entrée par le zoom : la couleur du pays envahit l'écran (REX n° 1, § 5.5)
+
 const ICONES = {
   plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>',
   moins: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"/></svg>',
@@ -62,7 +64,12 @@ function construireEcran(listePays) {
         <button class="round" id="zoom-moins" aria-label="${textes.globe.zoomMoins}">${ICONES.moins}</button>
       </div>
       <div class="zoom-jauge" aria-hidden="true"><i id="zoom-niveau"></i></div>
+      <div class="etiquette-entrer" id="entrer-pays" hidden>
+        <span id="entrer-nom"></span>
+        <button id="entrer-bouton">${textes.globe.entrer}</button>
+      </div>
     </div>
+    <div id="invasion" aria-hidden="true" hidden></div>
 
     <div id="intro">
       <span class="sticker tilt-l">${t.etiquette}</span>
@@ -192,6 +199,35 @@ async function allerAuGlobe() {
   await globe.revenir();
 }
 
+/**
+ * Entrée dans un pays en zoomant (REX n° 1, § 5.5) : la couleur du pays envahit l'écran depuis
+ * le centre (0,55 s), puis la carte du pays s'ouvre, sans l'envol habituel.
+ */
+let entreeParZoom = false;
+function entrerParZoom(pays) {
+  const invasion = $('#invasion');
+  invasion.style.setProperty('--couleur-pays', pays.couleur);   // couleur du pays, lue dans ses données
+  invasion.classList.remove('disparait');
+  invasion.hidden = false;
+  void invasion.offsetWidth;   // repart de zéro si l'animation a déjà servi
+  invasion.classList.add('envahit');
+  const duree = matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : DUREE_INVASION;
+  setTimeout(() => {
+    entreeParZoom = true;
+    naviguer(adresseDe({ pays }));
+  }, duree);
+}
+/** La carte du pays est prête : le voile de couleur s'efface. */
+function terminerInvasion() {
+  const invasion = $('#invasion');
+  if (invasion.hidden) return;
+  invasion.classList.add('disparait');
+  setTimeout(() => {
+    invasion.hidden = true;
+    invasion.classList.remove('envahit', 'disparait');
+  }, 300);
+}
+
 /** Entre dans un pays : envol depuis le globe, ou changement direct de pays. */
 async function entrerDansPays(pays, immediat) {
   const depuisLeGlobe = etat.vue === 'globe';
@@ -214,8 +250,10 @@ async function entrerDansPays(pays, immediat) {
 async function appliquerAdresse(adresse) {
   // Une adresse plus récente attend déjà : inutile d'afficher celle-ci
   if (adresse !== adresseActuelle()) return;
-  const immediat = premierAffichage;
+  // Premier affichage, ou entrée par le zoom (la couleur du pays couvre déjà l'écran) : sans envol
+  const immediat = premierAffichage || entreeParZoom;
   premierAffichage = false;
+  entreeParZoom = false;
   const [code, region, ville] = adresse.replace(/^#\/?/, '').split('/').filter(Boolean).map(decodeURIComponent);
 
   if (listes[code]) {
@@ -248,7 +286,9 @@ async function appliquerAdresse(adresse) {
   if (etat.pays?.code !== code) {
     try {
       entreDepuisLeGlobe = await entrerDansPays(pays, immediat);
+      terminerInvasion();
     } catch (erreur) {
+      terminerInvasion();
       console.error(erreur);
       afficherMessage(textes.erreurs.chargement);
       corrigerAdresse('#/');
@@ -426,7 +466,16 @@ async function demarrer() {
       // Plein écran du globe (REX n° 1, § 5.2) : les barres s'effacent, bouton × et jauge apparaissent
       surPleinEcran: (actif) => $('#app').classList.toggle('globe-plein', actif),
       surZoom: (niveau, maximum) => { $('#zoom-niveau').style.height = `${((Math.log(niveau) / Math.log(maximum)) * 100).toFixed(1)}%`; },
+      // Entrée dans un pays en zoomant (REX n° 1, § 5.5)
+      surPaysAuCentre: (pays) => {
+        $('#entrer-pays').hidden = !pays;
+        if (!pays) return;
+        $('#entrer-nom').textContent = pays.nom;
+        $('#entrer-bouton').setAttribute('aria-label', textes.globe.entrerDans(pays.nom));
+      },
+      surEntree: entrerParZoom,
     });
+    $('#entrer-bouton').addEventListener('click', () => globe.entrer());
     $('#zoom-plus').addEventListener('click', () => globe.zoomerPlus());
     $('#zoom-moins').addEventListener('click', () => globe.zoomerMoins());
     $('#zoom-retour').addEventListener('click', () => globe.dezoomer());

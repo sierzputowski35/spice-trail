@@ -263,6 +263,71 @@ body { overflow: hidden; }
   height: 0;
   background: var(--sun);
 }
+/* Régions culinaires pendant le zoom (REX n° 1, § 5.4) */
+.regions-zoom { pointer-events: none; }
+.limites-regions {
+  fill: none;
+  stroke: var(--paper);
+  stroke-width: .7;
+  vector-effect: non-scaling-stroke;
+}
+/* Étiquette « [Pays] · Entrer » (REX n° 1, § 5.5) */
+.etiquette-entrer {
+  position: absolute;
+  z-index: 6;
+  left: 50%;
+  bottom: calc(28px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%) rotate(-2deg);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 6px 6px 14px;
+  border: 2px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--fg);
+  box-shadow: var(--hard);
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.etiquette-entrer[hidden] { display: none; }
+.etiquette-entrer button {
+  position: relative;
+  padding: 6px 12px;
+  border: 2px solid var(--border);
+  border-radius: 999px;
+  background: var(--sun);
+  color: var(--on-sun);
+  font-size: 13px;
+  font-weight: 700;
+}
+/* Zone de toucher d'au moins 44 px autour du bouton */
+.etiquette-entrer button::after {
+  content: '';
+  position: absolute;
+  inset: -8px -4px;
+}
+/* La couleur du pays envahit l'écran depuis le centre */
+#invasion {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  background: var(--couleur-pays);
+  clip-path: circle(0 at 50% 50%);
+  pointer-events: none;
+}
+#invasion[hidden] { display: none; }
+#invasion.envahit { animation: envahir .55s ease-in forwards; }
+#invasion.disparait {
+  clip-path: circle(150vmax at 50% 50%);
+  opacity: 0;
+  transition: opacity .3s;
+}
+@keyframes envahir {
+  to { clip-path: circle(150vmax at 50% 50%); }
+}
 /* Plein écran : le globe occupe tout l'écran, les barres s'effacent */
 #app.globe-plein { background: var(--globe-full-bg); }
 #app.globe-plein #stage { bottom: 0; }

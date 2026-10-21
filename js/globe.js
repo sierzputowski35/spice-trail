@@ -3,7 +3,7 @@
 // drapeau au survol et au toucher, envol vers un pays et retour.
 
 import { textes } from './textes.js';
-import { chargerDrapeau, chargerMondeDetaille } from './donnees.js';
+import { chargerDrapeau, chargerMondeDetaille, chargerRegions } from './donnees.js';
 
 const d3 = window.d3;
 const topojson = window.topojson;
@@ -22,6 +22,9 @@ const ZOOM_MAX = 12;
 const PLEIN_ECRAN_DEBUT = 1.5;   // au-delà, le globe passe en plein écran
 const PLEIN_ECRAN_FIN = 1.2;     // en dessous (doigts relâchés), retour à l'accueil normal
 const ZOOM_DETAIL = 3;           // contours détaillés à partir de ×3 (chargés dès ×2)
+const ZOOM_REGIONS = [4, 8];     // régions culinaires : invisibles à ×4, entières à ×8
+const ZOOM_CHARGER_REGIONS = 3;  // fichier des régions chargé dès que le pays approche du centre
+const ZOOM_ENTRER = 4;           // étiquette « Entrer » à partir de ×4, entrée automatique à ×12
 const ZOOM_BOUTON = 1.8;         // boutons + et − : ×1,8 en 0,42 s
 const DUREE_ZOOM_BOUTON = 420;
 const DUREE_DEZOOM = 700;        // bouton × : retour au globe entier
@@ -48,7 +51,7 @@ function nomFrancais(pays, codes) {
  * options.surPaysDisponible(pays) : toucher d'un pays disponible (pays de data/pays.json)
  * options.surPaysBientot(nom)     : toucher d'un autre pays (nom en français)
  */
-export function creerGlobe(svgElement, { monde, codes, listePays, surPaysDisponible, surPaysBientot, surPleinEcran, surZoom }) {
+export function creerGlobe(svgElement, { monde, codes, listePays, surPaysDisponible, surPaysBientot, surPleinEcran, surZoom, surPaysAuCentre, surEntree }) {
   const disponibles = new Map(listePays.map((p) => [p.code.toUpperCase(), p]));
   const paysDisponible = (f) => disponibles.get(codes[String(f.id)]);
   const pays = topojson.feature(monde, monde.objects.countries).features;
@@ -119,6 +122,21 @@ export function creerGlobe(svgElement, { monde, codes, listePays, surPaysDisponi
     .attr('class', 'scintille')
     .style('--duree', () => `${(2.6 + Math.random() * 1.8).toFixed(2)}s`)
     .style('--decalage', () => `${(-Math.random() * 4.4).toFixed(2)}s`);
+  // Régions culinaires pendant le zoom (REX n° 1, § 5.4) : leurs limites en lignes blanches fines
+  const coucheRegions = svg.append('g').attr('class', 'regions-zoom').attr('aria-hidden', 'true');
+  const limitesRegions = new Map();   // code du pays → limites entre ses régions (MultiLineString)
+  const regionsDemandees = new Set();
+  function chargerLimitesRegions(code) {
+    if (regionsDemandees.has(code)) return;
+    regionsDemandees.add(code);
+    chargerRegions(code)
+      .then((topo) => {
+        limitesRegions.set(code, topojson.mesh(topo, topo.objects.regions, (a, b) => a !== b));
+        dessiner();
+      })
+      .catch(() => regionsDemandees.delete(code));   // sans connexion : on réessaiera
+  }
+
   // Drapeaux affichés (au-dessus des pays, sans jamais bloquer les touchers)
   const coucheDrapeaux = svg.append('g').attr('class', 'drapeaux').attr('aria-hidden', 'true');
   const drapeauxAffiches = new Set();
@@ -277,7 +295,9 @@ export function creerGlobe(svgElement, { monde, codes, listePays, surPaysDisponi
     };
     dessinerFond(estVisible);
     traces.attr('d', traceVisible);
+    dessinerRegions(vue, estVisible);
     voiles.attr('d', traceVisible);
+    signalerPaysAuCentre();
     if (drapeauxAffiches.size) dessinerDrapeaux();
     // Une zone tactile n'existe que si le pays est sur la face visible du globe
     const [lambda, phi] = projection.rotate();
@@ -300,6 +320,54 @@ export function creerGlobe(svgElement, { monde, codes, listePays, surPaysDisponi
     const { width, height } = svgElement.getBoundingClientRect();
     largeur = width;
     hauteur = height;
+  }
+
+  /** Régions culinaires des pays disponibles proches du centre, de plus en plus visibles avec le zoom. */
+  function dessinerRegions(vue, estVisible) {
+    const [debut, fin] = ZOOM_REGIONS;
+    const opacite = Math.max(0, Math.min(1, (zoom - debut) / (fin - debut)));
+    if (zoom > ZOOM_CHARGER_REGIONS) {
+      for (const f of tracesDisponibles.data()) {
+        const { centre, rayon } = cercle(f);
+        if (d3.geoDistance(centre, vue) < rayon + 0.1) chargerLimitesRegions(paysDisponible(f).code);
+      }
+    }
+    const montrees = opacite > 0
+      ? tracesDisponibles.data().filter((f) => limitesRegions.has(paysDisponible(f).code) && estVisible(f)) : [];
+    coucheRegions.attr('opacity', opacite)
+      .selectAll('path')
+      .data(montrees, (f) => paysDisponible(f).code)
+      .join('path')
+      .attr('class', 'limites-regions')
+      .attr('d', (f) => chemin(limitesRegions.get(paysDisponible(f).code)));
+  }
+
+  /** Pays disponible au centre de l'écran (plein écran, à partir de ×4) : l'application montre « Entrer ». */
+  let paysAuCentre = null;
+  let entreeEnCours = false;
+  function chercherPaysAuCentre() {
+    if (!plein || zoom < ZOOM_ENTRER || entreeEnCours) return null;
+    const lieu = projection.invert(centreEcran());
+    const f = lieu && tracesDisponibles.data().find((x) => d3.geoContains(forme(x), lieu));
+    return f ? paysDisponible(f) : null;
+  }
+  function signalerPaysAuCentre() {
+    const p = chercherPaysAuCentre();
+    if (p === paysAuCentre) return;
+    paysAuCentre = p;
+    surPaysAuCentre?.(p);
+  }
+  /** Entrée dans le pays du centre (bouton « Entrer », ou zoom ×12). */
+  function entrer() {
+    const p = chercherPaysAuCentre();
+    if (!p || entreeEnCours) return;
+    entreeEnCours = true;
+    elan = null;
+    molette = null;
+    svg.interrupt('zoom');
+    paysAuCentre = null;
+    surPaysAuCentre?.(null);
+    surEntree?.(p);
   }
 
   /** Toile : ombre, sphère, méridiens et pays « Bientôt disponible », en une seule passe. */
@@ -437,6 +505,7 @@ export function creerGlobe(svgElement, { monde, codes, listePays, surPaysDisponi
 
   /** Zoom vers un point de l'écran : le lieu sous le doigt (ou le curseur) y reste. */
   function zoomerVers(k, pt, geo) {
+    if (entreeEnCours) return;
     zoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, k));
     if (!plein && zoom > PLEIN_ECRAN_DEBUT) pleinEcran(true);
     else if (plein && zoom < PLEIN_ECRAN_FIN && !glissement) pleinEcran(false);
@@ -447,6 +516,7 @@ export function creerGlobe(svgElement, { monde, codes, listePays, surPaysDisponi
     if (zoom > 2) chargerDetail();
     demanderDessin();
     surZoom?.(zoom, ZOOM_MAX);
+    if (zoom >= ZOOM_MAX - 0.05) entrer();
   }
 
   /** Zoom animé (boutons + et −, bouton ×). */
@@ -492,7 +562,7 @@ export function creerGlobe(svgElement, { monde, codes, listePays, surPaysDisponi
   };
 
   svgElement.addEventListener('pointerdown', (evenement) => {
-    if (!surGlobe || evenement.button > 0) return;
+    if (!surGlobe || entreeEnCours || evenement.button > 0) return;
     pointeurs.set(evenement.pointerId, [evenement.clientX, evenement.clientY]);
     pause();
     elan = null;
@@ -557,7 +627,7 @@ export function creerGlobe(svgElement, { monde, codes, listePays, surPaysDisponi
 
   // Molette (ordinateur) : zoom doux vers le curseur
   svgElement.addEventListener('wheel', (evenement) => {
-    if (!surGlobe) return;
+    if (!surGlobe || entreeEnCours) return;
     evenement.preventDefault();
     pause();
     const pt = versSvg(evenement.clientX, evenement.clientY);
@@ -695,6 +765,8 @@ export function creerGlobe(svgElement, { monde, codes, listePays, surPaysDisponi
       toile.classList.remove('fade');
       svgElement.parentElement.inert = false;
       zoom = 1;
+      entreeEnCours = false;
+      projection.precision(0.4);
       surZoom?.(zoom, ZOOM_MAX);
       await animer(projection.rotate(), echelle, DUREE_RETOUR, d3.easeCubicOut);
       surGlobe = true;
@@ -704,6 +776,8 @@ export function creerGlobe(svgElement, { monde, codes, listePays, surPaysDisponi
     /** Boutons + et − : ×1,8 vers le centre de l'écran. */
     zoomerPlus() { if (surGlobe) zoomerAnime(zoom * ZOOM_BOUTON, DUREE_ZOOM_BOUTON, d3.easeCubicOut); },
     zoomerMoins() { if (surGlobe) zoomerAnime(zoom / ZOOM_BOUTON, DUREE_ZOOM_BOUTON, d3.easeCubicOut); },
+    /** Bouton « Entrer » : entrée dans le pays au centre de l'écran. */
+    entrer,
     /** Bouton × du plein écran : retour au globe entier. */
     dezoomer() { if (surGlobe) zoomerAnime(1, DUREE_DEZOOM, d3.easeCubicInOut); },
 
