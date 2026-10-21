@@ -1,5 +1,21 @@
 [
   {
+    "code": "de",
+    "nom": "Allemagne",
+    "couleur": "#4A2C23",
+    "langue": "de",
+    "police": "# vide : écriture latine, aucune police à charger",
+    "fichier": "data/pays/de.json"
+  },
+  {
+    "code": "ar",
+    "nom": "Argentine",
+    "couleur": "#6CACE4",
+    "langue": "es",
+    "police": "# vide : écriture latine, aucune police à charger",
+    "fichier": "data/pays/ar.json"
+  },
+  {
     "code": "br",
     "nom": "Brésil",
     "couleur": "#138A4F",
@@ -14,6 +30,14 @@
     "langue": "zh",
     "police": "Noto Sans SC",
     "fichier": "data/pays/cn.json"
+  },
+  {
+    "code": "co",
+    "nom": "Colombie",
+    "couleur": "#B8860B",
+    "langue": "es",
+    "police": "# vide : écriture latine, aucune police à charger",
+    "fichier": "data/pays/co.json"
   },
   {
     "code": "kr",
@@ -48,12 +72,28 @@
     "fichier": "data/pays/gr.json"
   },
   {
+    "code": "ge",
+    "nom": "Géorgie",
+    "couleur": "#5E1B2D",
+    "langue": "ka",
+    "police": "Noto Sans Georgian",
+    "fichier": "data/pays/ge.json"
+  },
+  {
     "code": "in",
     "nom": "Inde",
     "couleur": "#F28C28",
     "langue": "hi",
     "police": "Noto Sans Devanagari",
     "fichier": "data/pays/in.json"
+  },
+  {
+    "code": "id",
+    "nom": "Indonésie",
+    "couleur": "#E8735A",
+    "langue": "id",
+    "police": "# vide : écriture latine, aucune police à charger",
+    "fichier": "data/pays/id.json"
   },
   {
     "code": "ir",
@@ -107,12 +147,44 @@
     "fichier": "data/pays/mx.json"
   },
   {
+    "code": "ng",
+    "nom": "Nigeria",
+    "couleur": "#D9531E",
+    "langue": "en",
+    "police": "# vide : écriture latine, aucune police à charger",
+    "fichier": "data/pays/ng.json"
+  },
+  {
+    "code": "ph",
+    "nom": "Philippines",
+    "couleur": "#005F73",
+    "langue": "fil",
+    "police": "# vide : écriture latine, aucune police à charger",
+    "fichier": "data/pays/ph.json"
+  },
+  {
+    "code": "pt",
+    "nom": "Portugal",
+    "couleur": "#1B4F9C",
+    "langue": "pt",
+    "police": "# vide : écriture latine, aucune police à charger",
+    "fichier": "data/pays/pt.json"
+  },
+  {
     "code": "pe",
     "nom": "Pérou",
     "couleur": "#4B2A7B",
     "langue": "es",
     "police": "# vide : écriture latine ou grecque, aucune police à charger",
     "fichier": "data/pays/pe.json"
+  },
+  {
+    "code": "gb",
+    "nom": "Royaume-Uni",
+    "couleur": "#4E6E81",
+    "langue": "en",
+    "police": "# vide : écriture latine, aucune police à charger",
+    "fichier": "data/pays/gb.json"
   },
   {
     "code": "sn",
@@ -152,6 +224,14 @@
     "couleur": "#E2557F",
     "langue": "vi",
     "fichier": "data/pays/vn.json"
+  },
+  {
+    "code": "eg",
+    "nom": "Égypte",
+    "couleur": "#C9A86A",
+    "langue": "ar",
+    "police": "Noto Sans Arabic",
+    "fichier": "data/pays/eg.json"
   },
   {
     "code": "us",

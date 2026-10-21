@@ -107,11 +107,6 @@ p {
   40% { transform: scale(1.25); color: var(--accent); }
 }
 
-@keyframes pulse {
-  0%, 100% { stroke-width: .6; }
-  50% { stroke-width: 5; }
-}
-
 /* Mouvement réduit : plus aucune animation, changements immédiats */
 @media (prefers-reduced-motion: reduce) {
   *,

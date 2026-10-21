@@ -1,5 +1,5 @@
 // Globe 3D (D3, projection orthographique) : rotation automatique et au doigt,
-// pays disponibles colorés et pulsants, « Bientôt disponible » pour les autres,
+// pays disponibles colorés et scintillants, « Bientôt disponible » pour les autres,
 // drapeau au survol et au toucher, envol vers un pays et retour.
 
 import { textes } from './textes.js';
@@ -79,6 +79,13 @@ export function creerGlobe(svgElement, { monde, codes, listePays, surPaysDisponi
     .on('click', (evenement, f) => toucher(f, tracesDisponibles.filter((x) => x === f).node()));
   const groupeDisponibles = svg.append('g');
   tracesDisponibles.each(function () { groupeDisponibles.node().append(this); });
+  // Scintillement (REX n° 1) : un voile par pays disponible, chacun à son rythme
+  // (2,6 à 4,4 s, départ décalé), pour que les pays ne clignotent jamais ensemble
+  const voiles = svg.append('g').attr('aria-hidden', 'true').selectAll('path')
+    .data(pays.filter(paysDisponible)).join('path')
+    .attr('class', 'scintille')
+    .style('--duree', () => `${(2.6 + Math.random() * 1.8).toFixed(2)}s`)
+    .style('--decalage', () => `${(-Math.random() * 4.4).toFixed(2)}s`);
   tracesDisponibles.attr('data-cible', (f) => `pays-${paysDisponible(f).code}`);
   const centres = new Map(pays.filter(paysDisponible).map((f) => [f, d3.geoCentroid(f)]));
   tracesDisponibles
@@ -114,6 +121,7 @@ export function creerGlobe(svgElement, { monde, codes, listePays, surPaysDisponi
     sphere.attr('d', chemin);
     meridiens.attr('d', chemin);
     traces.attr('d', chemin);
+    voiles.attr('d', chemin);
     // Une zone tactile n'existe que si le pays est sur la face visible du globe
     const [lambda, phi] = projection.rotate();
     cibles.each(function (f) {

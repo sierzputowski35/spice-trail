@@ -7,8 +7,6 @@ export const textes = {
   accueil: {
     etiquette: 'Explorer le monde',
     invitation: 'Faites tourner le globe et touchez un pays pour découvrir sa cuisine.',
-    legendeDisponible: 'À explorer',
-    legendeBientot: 'Bientôt disponible',
   },
 
   globe: {

@@ -39,7 +39,6 @@ let derniereExploration = '#/';   // pour revenir à la carte avec l'onglet Expl
 /** Construit les éléments fixes de l'écran (textes venant de textes.js). */
 function construireEcran(listePays) {
   const t = textes.accueil;
-  const pastilles = listePays.map((p) => `<i class="dot" style="background:${echapper(p.couleur)}"></i>`).join('');
   $('#app').innerHTML = `
     <div id="topbar">
       <button class="round" id="retour" aria-label="${textes.navigation.retour}" hidden>${ICONES.retour}</button>
@@ -57,11 +56,6 @@ function construireEcran(listePays) {
       <span class="sticker tilt-l">${t.etiquette}</span>
       <h1>${textes.nomApplication.split(' ').map(echapper).join('<br>')}</h1>
       <p>${t.invitation}</p>
-    </div>
-
-    <div id="legend" aria-hidden="true">
-      <span class="sticker tilt-l"><span class="dots">${pastilles}</span>${t.legendeDisponible}</span>
-      <span class="sticker tilt-r"><i class="dot soon"></i>${t.legendeBientot}</span>
     </div>
 
     <nav class="tabbar" id="tabbar" aria-label="${textes.onglets.navigation}">
@@ -155,7 +149,6 @@ function corrigerAdresse(adresse) {
 
 function montrerAccueil(visible) {
   $('#intro').hidden = !visible;
-  $('#legend').hidden = !visible;
 }
 
 function mettreAJourTitre() {

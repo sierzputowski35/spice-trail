@@ -48,16 +48,31 @@ body { overflow: hidden; }
 }
 .globe-cible { fill: transparent; cursor: pointer; }
 .country.has {
-  stroke: var(--sun);
-  animation: pulse 1.8s ease-in-out infinite;
+  /* REX n° 1 : contour fin et fixe, quel que soit le zoom (plus de pulsation menthe) */
+  stroke: var(--shadow-ink);
+  stroke-width: .5;
+  vector-effect: non-scaling-stroke;
 }
 .country.has:focus { outline: none; }
-.country.has:focus-visible { stroke: var(--shadow-ink); stroke-width: 3; animation: none; }
+.country.has:focus-visible { stroke: var(--shadow-ink); stroke-width: 3; }
+/* Scintillement : un voile blanc passe de 0 à 14 % d'opacité, au rythme propre de chaque pays
+   (durée et départ donnés par js/globe.js). Il ne bloque jamais les touchers ; en mouvement
+   réduit, toutes les animations sont coupées et le voile reste invisible. */
+.scintille {
+  fill: var(--scintillement);
+  stroke: none;
+  opacity: 0;
+  pointer-events: none;
+  animation: scintiller var(--duree, 3.5s) ease-in-out var(--decalage, 0s) infinite;
+}
+@keyframes scintiller {
+  0%, 100% { opacity: 0; }
+  50% { opacity: .14; }
+}
 /* Drapeau au survol ou au toucher */
 .country.flagged {
   stroke: var(--shadow-ink);
   stroke-width: 2.5;
-  animation: none;
 }
 
 /* ---------- Carte du pays ---------- */
@@ -168,19 +183,6 @@ body { overflow: hidden; }
   color: var(--fg);
   font-weight: 500;
 }
-
-#legend {
-  position: absolute;
-  z-index: 4;
-  left: 0;
-  right: 0;
-  bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px) + 16px);
-  display: flex;
-  justify-content: center;
-  gap: 12px;
-  pointer-events: none;
-}
-#legend .dots { display: inline-flex; gap: 2px; }
 
 /* ---------- Panneau de fiche ---------- */
 #sheet {

@@ -24,17 +24,6 @@
 .tilt-l { transform: rotate(-3deg); }
 .tilt-r { transform: rotate(2.5deg); }
 
-/* Pastille de couleur dans une étiquette (légende du globe) */
-.dot {
-  display: block;
-  width: 11px;
-  height: 11px;
-  border: 1.5px solid var(--map-ink);
-  border-radius: 6px;
-}
-.dot.available { background: var(--accent-l); }
-.dot.soon { background: var(--land-soon); }
-
 /* ---------- Bouton rond (retour, favori, à propos) ---------- */
 .round {
   flex: none;

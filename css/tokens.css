@@ -33,6 +33,7 @@
   --on-sun: #1B1410;       /* texte posé sur la menthe ou le rose */
   --on-accent: #FFFFFF;    /* texte posé sur la couleur du pays */
   --paper: #FFFFFF;        /* pastilles blanches sur l'en-tête des recettes */
+  --scintillement: #FFFFFF; /* voile qui fait scintiller les pays disponibles du globe (REX n° 1) */
   --paper-ink: #1B1410;
   --map-ink: #1B1410;      /* noms et points sur la carte */
   --map-halo: #FFFFFF;
