@@ -2,7 +2,7 @@
 // liens entre recettes, étapes et minuteurs, conseils, « Ce qu'on raconte ».
 
 import { textes } from './textes.js';
-import { quantitePour } from './quantites.js';
+import { quantitePour, avecFahrenheit } from './quantites.js';
 import { echapper, attributLangue, elementOrigine, ecritureOrigine, langueEcriture, langueRecette, estCjk, photoVerifiee, piments, duree, nomLieu } from './outils.js';
 import { estFavori, basculerFavori } from './favoris.js';
 import { exploserPiments } from './animations.js';
@@ -135,14 +135,14 @@ export function creerEcranRecette(conteneur, { surLieu, surRetour, surRecette, s
           </div>
         </div>
         ${r.securite ? `<aside class="alerte" role="note" aria-labelledby="alerte-titre">${ICONES.alerte}
-          <div><p class="alerte-titre" id="alerte-titre">${t.securite}</p><p>${echapper(r.securite)}</p></div></aside>` : ''}
+          <div><p class="alerte-titre" id="alerte-titre">${t.securite}</p><p>${avecFahrenheit(echapper(r.securite))}</p></div></aside>` : ''}
         ${groupes.map((g) => `<div class="ing">${g.nom ? `<h3>${echapper(g.nom)}</h3>` : ''}<ul>${g.lignes.map(ligne).join('')}</ul></div>`).join('')}
       </section>`;
   }
 
   function etapes() {
     const r = fiche.recette;
-    return `<section class="r-sec"><h2>${t.etapes}</h2><ol class="steps">${r.etapes.map((e, n) => `<li><div>${e.texte}${e.minuteur
+    return `<section class="r-sec"><h2>${t.etapes}</h2><ol class="steps">${r.etapes.map((e, n) => `<li><div>${avecFahrenheit(e.texte)}${e.minuteur
       ? `<br><button class="timer" data-minuteur="${n}" data-duree="${echapper(e.minuteur)}" aria-pressed="false">${ICONES.minuteur}<span>${echapper(t.minuteur(libelleDuree(e.minuteur)))}</span></button>`
       : ''}</div></li>`).join('')}</ol></section>`;
   }
@@ -163,7 +163,7 @@ export function creerEcranRecette(conteneur, { surLieu, surRetour, surRecette, s
         ${ingredients()}
         ${r.ustensiles?.length ? `<section class="r-sec"><h2>${t.ustensiles}</h2><div class="chips">${r.ustensiles.map((u) => `<span class="chip">${echapper(u)}</span>`).join('')}</div></section>` : ''}
         ${etapes()}
-        ${r.conseils ? `<section class="r-sec"><h2>${t.conseils}</h2><div class="tip prose">${r.conseils}</div></section>` : ''}
+        ${r.conseils ? `<section class="r-sec"><h2>${t.conseils}</h2><div class="tip prose">${avecFahrenheit(r.conseils)}</div></section>` : ''}
         ${r.legendes ? `<aside class="legend-box prose"><h3>${textes.panneau.ceQuOnRaconte}</h3>${r.legendes}</aside>` : ''}
       </div>`;
     for (const bouton of ecran.querySelectorAll('[data-minuteur]')) afficherMinuteur(bouton);

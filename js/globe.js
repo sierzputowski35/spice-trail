@@ -3,6 +3,7 @@
 // drapeau au survol et au toucher, envol vers un pays et retour.
 
 import { textes } from './textes.js';
+import { nomPays } from './langue.js';
 import { chargerDrapeau, chargerMondeDetaille, chargerRegions } from './donnees.js';
 
 const d3 = window.d3;
@@ -42,13 +43,11 @@ const VIGNETTE = { largeur: 40, hauteur: 27, cadre: 3, ecart: 12, pointe: 8 };
 const mouvementReduit = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 const attendre = (ms) => new Promise((fin) => setTimeout(fin, ms));
 
-/** Nom français d'un pays de la carte du monde. */
+/** Nom d'un pays de la carte du monde, dans la langue de l'interface. */
 function nomFrancais(pays, codes) {
   const code = codes[String(pays.id)];
-  try {
-    if (code) return new Intl.DisplayNames(['fr'], { type: 'region' }).of(code);
-  } catch { /* navigateur sans Intl.DisplayNames : nom de secours ci-dessous */ }
-  return textes.paysSansCode[pays.properties.name] || pays.properties.name;
+  const secours = textes.paysSansCode[pays.properties.name] || pays.properties.name;
+  return code ? nomPays(code, secours) : secours;
 }
 
 /**

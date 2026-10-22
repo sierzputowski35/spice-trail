@@ -3,6 +3,7 @@
 
 import { chargerPolice } from './polices.js';
 import { annoterNomsCourts } from './outils.js';
+import { langue, nomPays } from './langue.js';
 
 const memoire = new Map();
 
@@ -19,8 +20,17 @@ function charger(chemin) {
   return memoire.get(chemin);
 }
 
-/** Liste des pays disponibles : [{ code, nom, couleur, fichier }] */
-export const chargerListePays = () => charger('data/pays.json');
+/**
+ * Liste des pays disponibles : [{ code, nom, couleur, fichier, fichiers? }], noms dans la langue de l'interface,
+ * dans l'ordre alphabétique de cette langue. « fichiers » donne les contenus traduits ({ en: …, es: … }).
+ */
+let listeTraduite;
+export function chargerListePays() {
+  listeTraduite ??= charger('data/pays.json').then((liste) => (langue === 'fr' ? liste : liste
+    .map((pays) => ({ ...pays, nom: nomPays(pays.code, pays.nom) }))
+    .sort((a, b) => a.nom.localeCompare(b.nom, langue))));
+  return listeTraduite;
+}
 
 /** Contours du monde (TopoJSON, identifiants = codes ISO numériques) */
 export const chargerMonde = () => charger('data/geo/monde-110m.json');
@@ -34,10 +44,17 @@ export const chargerMondeDetaille = () => charger('data/geo/monde-50m.json');
 /** Drapeau d'un pays pour le globe : fond et emblème déjà placés (outils/preparer_drapeaux.mjs). */
 export const chargerDrapeau = (code) => charger(`data/geo/drapeaux/${code}.json`);
 
-/** Contenus d'un pays (fiches et recettes). Sa police d'écriture se charge en même temps. */
+/**
+ * Contenus d'un pays (fiches et recettes), traduits dans la langue de l'interface s'ils existent,
+ * sinon en français (avec le nom du pays dans la langue de l'interface). Sa police se charge en même temps.
+ */
 export function chargerPays(pays) {
   chargerPolice(pays);
-  return charger(pays.fichier).then(annoterNomsCourts);
+  const traduits = pays.fichiers?.[langue];
+  return charger(traduits || pays.fichier).then((contenus) => {
+    if (!traduits && langue !== 'fr') contenus.pays.nom = pays.nom;
+    return annoterNomsCourts(contenus);
+  });
 }
 
 /** Contours des régions culinaires d'un pays */

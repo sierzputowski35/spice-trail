@@ -8,6 +8,7 @@
 import { textes } from './textes.js';
 import { echapper, ICONE_SUITE } from './outils.js';
 import { versionLisible } from './couleurs.js';
+import { LANGUES, langue, changerLangue } from './langue.js';
 
 const CLE = 'spice-trail:profil';
 
@@ -105,6 +106,14 @@ export function creerEcranProfil(conteneur, { listePays, chargerTout, surRecette
           <h2 id="decouvertes-titre">${t.recettesDecouvertes}</h2>
           <ul class="list" id="profil-liste-recettes"></ul>
         </section>
+        <section class="carte-profil" aria-labelledby="reglages-titre">
+          <h2 id="reglages-titre">${t.reglages}</h2>
+          <p class="reglage-titre" id="langue-titre">${t.langue}</p>
+          <div class="choix-langue" role="group" aria-labelledby="langue-titre">
+            ${LANGUES.map((l) => `<button type="button" lang="${l}" data-langue="${l}" aria-pressed="${l === langue}">${textes.nomsLangues[l]}</button>`).join('')}
+          </div>
+          ${t.contenusEnFrancais && listePays.some((p) => !p.fichiers?.[langue]) ? `<p class="reglage-note">${t.contenusEnFrancais}</p>` : ''}
+        </section>
       </div>
     </section>`);
   const ecran = conteneur.querySelector('#profil');
@@ -172,6 +181,8 @@ export function creerEcranProfil(conteneur, { listePays, chargerTout, surRecette
   ecran.addEventListener('click', (evenement) => {
     const recette = evenement.target.closest('[data-recette]');
     if (recette) surRecette(recette.dataset.recette);
+    const choix = evenement.target.closest('[data-langue]');
+    if (choix) changerLangue(choix.dataset.langue);   // la page se recharge dans la langue choisie
   });
 
   return {

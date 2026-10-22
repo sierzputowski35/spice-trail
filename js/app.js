@@ -11,6 +11,7 @@ import { creerEcranRecherche } from './recherche.js';
 import { creerEcranFavoris } from './favoris.js';
 import { creerEcranAPropos } from './apropos.js';
 import { creerEcranProfil, noterJour, noterVisite, noterRecette } from './profil.js';
+import { langue } from './langue.js';
 import { remplacerImagesManquantes, nomLieu, piment } from './outils.js';
 
 const $ = (selecteur) => document.querySelector(selecteur);
@@ -581,6 +582,7 @@ async function demarrer() {
     listePays = liste;
     codesIso = codes;
     noterJour();   // série de jours (profil)
+    document.documentElement.lang = langue;   // langue de l'interface (REX n° 1, § 9)
     construireEcran(listePays);
     remplacerImagesManquantes();
 

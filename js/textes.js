@@ -1,8 +1,14 @@
-// Tous les textes d'interface, en français.
+// Tous les textes d'interface : français (référence), anglais et espagnol (REX n° 1, § 9).
 // C'est le seul endroit du code où figure le nom de l'application.
+// Une phrase absente en anglais ou en espagnol s'affiche en français.
 
-export const textes = {
+import { langue } from './langue.js';
+
+const fr = {
   nomApplication: 'Spice Trail',
+
+  // Nom de chaque langue, écrit dans cette langue (choix de la langue, Profil)
+  nomsLangues: { fr: 'Français', en: 'English', es: 'Español' },
 
   accueil: {
     etiquette: 'Explorer le monde',
@@ -176,6 +182,10 @@ export const textes = {
   unites: {
     pincee: 'pincée',
     pincees: 'pincées',
+    // Unités des fiches (en français) et leur affichage dans la langue de l'interface
+    noms: {},
+    // Anglais : mesures américaines à côté des grammes (cups, oz, °F) ; français et espagnol : métrique seulement
+    mesuresUS: false,
   },
 
   onglets: {
@@ -199,9 +209,375 @@ export const textes = {
     recettesDecouvertes: 'Recettes découvertes',
     aucuneRecette: 'Touchez « Surprends-moi » pour découvrir votre première recette.',
     nouveauTampon: (pays) => `Nouveau tampon : ${pays}`,
+    reglages: 'Réglages',
+    langue: 'Langue',
+    contenusEnFrancais: '',
   },
 
   erreurs: {
     chargement: 'Impossible de charger les données. Vérifiez votre connexion internet, puis rechargez la page.',
   },
 };
+
+/* ---------- English ---------- */
+const en = {
+  accueil: {
+    etiquette: 'Explore the world',
+    invitation: 'Spin the globe and tap a country to discover its cuisine.',
+  },
+  surprise: {
+    bouton: 'Surprise me',
+    voirRecette: 'See the recipe',
+    recetteDe: (lieu) => `A recipe from ${lieu}`,
+  },
+  globe: {
+    description: 'Globe. Spin it with your finger and tap a country.',
+    ouvrirPays: (nom) => `Discover the cuisine: ${nom}`,
+    bientot: (nom) => `${nom} · Coming soon`,
+    zoomPlus: 'Zoom in',
+    zoomMoins: 'Zoom out',
+    zoomRetour: 'Back to the whole globe',
+    entrer: 'Enter',
+    entrerDans: (nom) => `Enter the cuisine: ${nom}`,
+  },
+  paysSansCode: { 'N. Cyprus': 'Northern Cyprus', Somaliland: 'Somaliland', Kosovo: 'Kosovo' },
+  navigation: { retour: 'Go back', filAriane: 'Breadcrumb', monde: 'World' },
+  carte: {
+    description: (pays) => `Map of the culinary regions: ${pays}`,
+    regionSansFiche: 'This region has no guide yet',
+    villeBientot: 'City guide coming soon',
+    villeSansFiche: (nom) => `${nom}: guide coming soon`,
+  },
+  panneau: {
+    nom: 'Guide',
+    poignee: 'Expand or collapse the guide',
+    rubriques: 'Sections',
+    etiquettePays: 'Country',
+    etiquetteRegion: 'Culinary region',
+    etiquetteVille: (region) => `City · ${region}`,
+    onglets: { histoire: 'History', plats: 'Dishes', produits: 'Products', recettes: 'Recipes' },
+    textesAVenir: 'Text coming soon.',
+    enSavoirPlus: 'Read more',
+    reduire: 'Show less',
+    ceQuOnRaconte: 'As the story goes',
+    platsEmblematiques: 'Signature dishes',
+    voirLaRecette: 'See the recipe',
+    produitsTypiques: 'Local products',
+    lieuxGourmands: 'Places to eat',
+    nombreRecettes: (n) => `${n} recipe${n > 1 ? 's' : ''}`,
+    aucuneRecette: 'No recipes here yet.',
+  },
+  favoris: {
+    titre: 'Favourites',
+    chapo: 'Saved on this phone, no account needed.',
+    recettes: 'Recipes',
+    lieux: 'Places',
+    vide: 'No favourites yet. Tap the heart on a recipe or a guide to find it here.',
+    chargement: 'Loading your favourites…',
+    ajouterLieu: (nom) => `Add ${nom} to favourites`,
+    retirerLieu: (nom) => `Remove ${nom} from favourites`,
+    ajoute: 'Added to favourites',
+    retire: 'Removed from favourites',
+  },
+  recette: {
+    nom: 'Recipe',
+    difficulte: { facile: 'Easy', moyenne: 'Medium', difficile: 'Hard' },
+    piquant: ['Not spicy', 'Mildly spicy', 'Spicy', 'Very spicy'],
+    piquantSur3: (n) => `Spiciness ${n} out of 3`,
+    jours: (n) => `${n} days`,
+    semaines: (n) => (n > 1 ? `${n} weeks` : '1 week'),
+    preparation: 'Prep',
+    cuisson: 'Cooking',
+    repos: 'Resting',
+    difficulteTitre: 'Difficulty',
+    piquantTitre: 'Spiciness',
+    regimes: { vegetarien: 'Vegetarian', vegan: 'Vegan', 'sans-gluten': 'Gluten-free', 'sans-lactose': 'Dairy-free' },
+    saisons: { printemps: 'Spring', ete: 'Summer', automne: 'Autumn', hiver: 'Winter', 'toute-annee': 'All year' },
+    saison: (liste) => `Season: ${liste}`,
+    origine: 'Origin',
+    ingredients: 'Ingredients',
+    securite: 'Food safety',
+    ustensiles: 'Equipment',
+    etapes: 'Method',
+    conseils: 'Chef’s tips',
+    sinon: (texte) => `Otherwise: ${texte}`,
+    voirRecetteLiee: (nom) => `See the recipe: ${nom}`,
+    portionsParDefaut: 'servings',
+    portions: 'Number of servings',
+    moins: 'One serving less',
+    plus: 'One serving more',
+    minuteur: (duree) => `Timer ${duree}`,
+    minuteurLance: (duree) => `Timer started: ${duree}`,
+    minuteurArrete: 'Timer stopped',
+    minuteurFini: 'Timer finished',
+    termine: 'Done',
+    ajouterFavori: (nom) => `Add ${nom} to favourites`,
+    retirerFavori: (nom) => `Remove ${nom} from favourites`,
+  },
+  recherche: {
+    titre: 'Search',
+    chapo: 'A dish, an ingredient or a place.',
+    champ: 'Search for a dish, an ingredient or a place',
+    exemple: 'e.g. tofu, Chengdu, curry…',
+    filtres: 'Filters',
+    filtre: { vegetarien: 'Vegetarian', vegan: 'Vegan', facile: 'Easy', doux: 'Not spicy', rapide: 'Under 30 min' },
+    chargement: 'Loading recipes…',
+    recettes: (n) => `Recipes · ${n}`,
+    lieux: 'Places',
+    produits: 'Products',
+    lieuPays: 'Country',
+    lieuRegion: (pays) => `Culinary region · ${pays}`,
+    lieuVille: (region, pays) => `City · ${region} · ${pays}`,
+    aucunResultat: (mot) => `No results${mot ? ` for “${mot}”` : ''}. Try another word or remove a filter.`,
+    annonce: (n) => (n ? `${n} result${n > 1 ? 's' : ''}` : 'No results'),
+  },
+  aPropos: {
+    titre: 'About',
+    ouvrir: 'About',
+    fermer: 'Close',
+    presentation: (nom) => `<strong>${nom}</strong> takes you from country to region and from region to city to discover the history of the world’s cuisines, their dishes and their products, and to cook their recipes at home.`,
+    methodeTitre: 'Our approach',
+    methode: [
+      'Established facts and legends are kept apart: uncertain stories appear in the “As the story goes” box.',
+      'The recipes are written for the app and can be made at home, with substitutes for hard-to-find ingredients.',
+      'Dish photos are generated by AI, then checked one by one against the recipe.',
+      'No recipe uses an endangered or protected species: when a traditional dish contains one, the guide says so and the recipe is adapted.',
+    ],
+    cartesTitre: 'Maps',
+    frontieres: 'The borders shown come from the open data of Natural Earth, which represents the situation on the ground. They take no position on disputed territories.',
+    versionTitre: 'This version',
+    version: (noms) => {
+      const liste = noms.length > 1 ? `${noms.slice(0, -1).join(', ')} and ${noms[noms.length - 1]}` : noms.join('');
+      return `This version includes ${noms.length} countries: ${liste}. Other countries are marked “Coming soon”. Favourites are saved only on this device, with no account.`;
+    },
+    mentionsTitre: 'Credits and licences',
+    mentions: [
+      { nom: 'Map data', texte: 'Natural Earth, public domain.', lien: 'https://www.naturalearthdata.com/' },
+      { nom: 'Flags', texte: 'flag-icons, © 2013 Panayiotis Lipiridis, MIT licence.', lien: 'https://github.com/lipis/flag-icons/blob/main/LICENSE' },
+      { nom: 'Fonts', texte: 'Bricolage Grotesque, Inter, Noto Sans SC and Noto Sans Devanagari, under the SIL Open Font License.', lien: 'https://openfontlicense.org/' },
+      { nom: 'Libraries', texte: 'D3 and topojson-client, © Mike Bostock, ISC licence.', lien: 'https://d3js.org/' },
+      { nom: 'Dish images', texte: 'Generated by AI, then checked one by one.' },
+    ],
+    lienExterne: (nom) => `${nom} (opens in a new tab)`,
+  },
+  unites: {
+    pincee: 'pinch',
+    pincees: 'pinches',
+    noms: { 'c. à soupe': 'tbsp', 'c. à café': 'tsp' },
+    mesuresUS: true,
+    us: { oz: 'oz', lb: 'lb', cup: 'cup', cups: 'cups', tbsp: 'tbsp', tsp: 'tsp' },
+  },
+  onglets: {
+    navigation: 'Main navigation',
+    explorer: 'Explore',
+    rechercher: 'Search',
+    favoris: 'Favourites',
+    profil: 'Profile',
+    profilNouveauTampon: 'Profile, new stamp',
+  },
+  profil: {
+    etiquette: 'Profile',
+    titre: 'My travel journal',
+    passeport: 'Culinary passport',
+    serie: (n) => `${n}-day streak`,
+    paysSur: (total) => `out of ${total} countries`,
+    recettesTexte: (n) => (n === 1 ? 'recipe discovered' : 'recipes discovered'),
+    aDecouvrir: 'To discover',
+    recettesDecouvertes: 'Recipes discovered',
+    aucuneRecette: 'Tap “Surprise me” to discover your first recipe.',
+    nouveauTampon: (pays) => `New stamp: ${pays}`,
+    reglages: 'Settings',
+    langue: 'Language',
+    contenusEnFrancais: 'Country guides and recipes are in French for now: their translation is on its way.',
+  },
+  erreurs: {
+    chargement: 'Unable to load the data. Check your internet connection, then reload the page.',
+  },
+};
+
+/* ---------- Español ---------- */
+const es = {
+  accueil: {
+    etiquette: 'Explora el mundo',
+    invitation: 'Gira el globo y toca un país para descubrir su cocina.',
+  },
+  surprise: {
+    bouton: 'Sorpréndeme',
+    voirRecette: 'Ver la receta',
+    recetteDe: (lieu) => `Una receta de ${lieu}`,
+  },
+  globe: {
+    description: 'Globo terráqueo. Gíralo con el dedo y toca un país.',
+    ouvrirPays: (nom) => `Descubrir la cocina: ${nom}`,
+    bientot: (nom) => `${nom} · Próximamente`,
+    zoomPlus: 'Acercar',
+    zoomMoins: 'Alejar',
+    zoomRetour: 'Volver al globo completo',
+    entrer: 'Entrar',
+    entrerDans: (nom) => `Entrar en la cocina: ${nom}`,
+  },
+  paysSansCode: { 'N. Cyprus': 'Chipre del Norte', Somaliland: 'Somalilandia', Kosovo: 'Kosovo' },
+  navigation: { retour: 'Volver atrás', filAriane: 'Ruta de navegación', monde: 'Mundo' },
+  carte: {
+    description: (pays) => `Mapa de las regiones culinarias: ${pays}`,
+    regionSansFiche: 'Esta región aún no tiene ficha',
+    villeBientot: 'Ficha de la ciudad próximamente',
+    villeSansFiche: (nom) => `${nom}: ficha próximamente`,
+  },
+  panneau: {
+    nom: 'Ficha',
+    poignee: 'Ampliar o reducir la ficha',
+    rubriques: 'Secciones',
+    etiquettePays: 'País',
+    etiquetteRegion: 'Región culinaria',
+    etiquetteVille: (region) => `Ciudad · ${region}`,
+    onglets: { histoire: 'Historia', plats: 'Platos', produits: 'Productos', recettes: 'Recetas' },
+    textesAVenir: 'Texto próximamente.',
+    enSavoirPlus: 'Saber más',
+    reduire: 'Ver menos',
+    ceQuOnRaconte: 'Lo que se cuenta',
+    platsEmblematiques: 'Platos emblemáticos',
+    voirLaRecette: 'Ver la receta',
+    produitsTypiques: 'Productos típicos',
+    lieuxGourmands: 'Lugares para comer',
+    nombreRecettes: (n) => `${n} receta${n > 1 ? 's' : ''}`,
+    aucuneRecette: 'Todavía no hay recetas aquí.',
+  },
+  favoris: {
+    titre: 'Favoritos',
+    chapo: 'Guardados en este teléfono, sin cuenta.',
+    recettes: 'Recetas',
+    lieux: 'Lugares',
+    vide: 'Aún no hay favoritos. Toca el corazón de una receta o de una ficha para encontrarla aquí.',
+    chargement: 'Cargando tus favoritos…',
+    ajouterLieu: (nom) => `Añadir ${nom} a favoritos`,
+    retirerLieu: (nom) => `Quitar ${nom} de favoritos`,
+    ajoute: 'Añadido a favoritos',
+    retire: 'Quitado de favoritos',
+  },
+  recette: {
+    nom: 'Receta',
+    difficulte: { facile: 'Fácil', moyenne: 'Media', difficile: 'Difícil' },
+    piquant: ['Nada picante', 'Ligeramente picante', 'Picante', 'Muy picante'],
+    piquantSur3: (n) => `Picante ${n} de 3`,
+    jours: (n) => `${n} días`,
+    semaines: (n) => (n > 1 ? `${n} semanas` : '1 semana'),
+    preparation: 'Preparación',
+    cuisson: 'Cocción',
+    repos: 'Reposo',
+    difficulteTitre: 'Dificultad',
+    piquantTitre: 'Picante',
+    regimes: { vegetarien: 'Vegetariano', vegan: 'Vegano', 'sans-gluten': 'Sin gluten', 'sans-lactose': 'Sin lactosa' },
+    saisons: { printemps: 'Primavera', ete: 'Verano', automne: 'Otoño', hiver: 'Invierno', 'toute-annee': 'Todo el año' },
+    saison: (liste) => `Temporada: ${liste}`,
+    origine: 'Origen',
+    ingredients: 'Ingredientes',
+    securite: 'Seguridad alimentaria',
+    ustensiles: 'Utensilios',
+    etapes: 'Pasos',
+    conseils: 'Consejos del chef',
+    sinon: (texte) => `Si no: ${texte}`,
+    voirRecetteLiee: (nom) => `Ver la receta: ${nom}`,
+    portionsParDefaut: 'pers.',
+    portions: 'Número de raciones',
+    moins: 'Una ración menos',
+    plus: 'Una ración más',
+    minuteur: (duree) => `Temporizador ${duree}`,
+    minuteurLance: (duree) => `Temporizador en marcha: ${duree}`,
+    minuteurArrete: 'Temporizador detenido',
+    minuteurFini: 'Temporizador terminado',
+    termine: 'Hecho',
+    ajouterFavori: (nom) => `Añadir ${nom} a favoritos`,
+    retirerFavori: (nom) => `Quitar ${nom} de favoritos`,
+  },
+  recherche: {
+    titre: 'Buscar',
+    chapo: 'Un plato, un ingrediente o un lugar.',
+    champ: 'Buscar un plato, un ingrediente o un lugar',
+    exemple: 'Ej. tofu, Chengdu, curry…',
+    filtres: 'Filtros',
+    filtre: { vegetarien: 'Vegetariano', vegan: 'Vegano', facile: 'Fácil', doux: 'Nada picante', rapide: 'Menos de 30 min' },
+    chargement: 'Cargando las recetas…',
+    recettes: (n) => `Recetas · ${n}`,
+    lieux: 'Lugares',
+    produits: 'Productos',
+    lieuPays: 'País',
+    lieuRegion: (pays) => `Región culinaria · ${pays}`,
+    lieuVille: (region, pays) => `Ciudad · ${region} · ${pays}`,
+    aucunResultat: (mot) => `Sin resultados${mot ? ` para «${mot}»` : ''}. Prueba otra palabra o quita un filtro.`,
+    annonce: (n) => (n ? `${n} resultado${n > 1 ? 's' : ''}` : 'Sin resultados'),
+  },
+  aPropos: {
+    titre: 'Acerca de',
+    ouvrir: 'Acerca de',
+    fermer: 'Cerrar',
+    presentation: (nom) => `<strong>${nom}</strong>, «la ruta de las especias», te lleva de país en región y de región en ciudad para descubrir la historia de las cocinas del mundo, sus platos y sus productos, y cocinar sus recetas en casa.`,
+    methodeTitre: 'Nuestro método',
+    methode: [
+      'Los hechos comprobados y las leyendas van por separado: las historias inciertas aparecen en el recuadro «Lo que se cuenta».',
+      'Las recetas están escritas para la aplicación y se pueden hacer en casa, con sustitutos para los productos difíciles de encontrar.',
+      'Las fotos de los platos se generan con IA y luego se revisan una a una comparándolas con la receta.',
+      'Ninguna receta utiliza especies amenazadas o protegidas: cuando un plato tradicional las contiene, la ficha lo indica y la receta se adapta.',
+    ],
+    cartesTitre: 'Mapas',
+    frontieres: 'Las fronteras mostradas proceden de los datos libres de Natural Earth, que representan la situación de hecho sobre el terreno. No toman partido sobre los territorios en disputa.',
+    versionTitre: 'Esta versión',
+    version: (noms) => {
+      const liste = noms.length > 1 ? `${noms.slice(0, -1).join(', ')} y ${noms[noms.length - 1]}` : noms.join('');
+      return `Esta versión incluye ${noms.length} países: ${liste}. Los demás países aparecen como «Próximamente». Los favoritos se guardan solo en este dispositivo, sin cuenta.`;
+    },
+    mentionsTitre: 'Créditos y licencias',
+    mentions: [
+      { nom: 'Datos cartográficos', texte: 'Natural Earth, dominio público.', lien: 'https://www.naturalearthdata.com/' },
+      { nom: 'Banderas', texte: 'flag-icons, © 2013 Panayiotis Lipiridis, licencia MIT.', lien: 'https://github.com/lipis/flag-icons/blob/main/LICENSE' },
+      { nom: 'Tipografías', texte: 'Bricolage Grotesque, Inter, Noto Sans SC y Noto Sans Devanagari, con licencia SIL Open Font License.', lien: 'https://openfontlicense.org/' },
+      { nom: 'Bibliotecas', texte: 'D3 y topojson-client, © Mike Bostock, licencia ISC.', lien: 'https://d3js.org/' },
+      { nom: 'Imágenes de los platos', texte: 'Generadas con IA y revisadas una a una.' },
+    ],
+    lienExterne: (nom) => `${nom} (se abre en una pestaña nueva)`,
+  },
+  unites: {
+    pincee: 'pizca',
+    pincees: 'pizcas',
+    noms: { 'c. à soupe': 'cda.', 'c. à café': 'cdta.' },
+  },
+  onglets: {
+    navigation: 'Navegación principal',
+    explorer: 'Explorar',
+    rechercher: 'Buscar',
+    favoris: 'Favoritos',
+    profil: 'Perfil',
+    profilNouveauTampon: 'Perfil, nuevo sello',
+  },
+  profil: {
+    etiquette: 'Perfil',
+    titre: 'Mi cuaderno de viaje',
+    passeport: 'Pasaporte culinario',
+    serie: (n) => `Racha de ${n} día${n > 1 ? 's' : ''}`,
+    paysSur: (total) => `de ${total} países`,
+    recettesTexte: (n) => (n === 1 ? 'receta descubierta' : 'recetas descubiertas'),
+    aDecouvrir: 'Por descubrir',
+    recettesDecouvertes: 'Recetas descubiertas',
+    aucuneRecette: 'Toca «Sorpréndeme» para descubrir tu primera receta.',
+    nouveauTampon: (pays) => `Nuevo sello: ${pays}`,
+    reglages: 'Ajustes',
+    langue: 'Idioma',
+    contenusEnFrancais: 'Por ahora, las fichas y las recetas están en francés: su traducción está en camino.',
+  },
+  erreurs: {
+    chargement: 'No se pueden cargar los datos. Comprueba tu conexión a internet y vuelve a cargar la página.',
+  },
+};
+
+/** Complète une langue avec le français pour les phrases qui manquent. */
+function completer(base, langueChoisie) {
+  if (!langueChoisie) return base;
+  const resultat = { ...base };
+  for (const [cle, valeur] of Object.entries(langueChoisie)) {
+    const simple = valeur && typeof valeur === 'object' && !Array.isArray(valeur);
+    resultat[cle] = simple && base[cle] && typeof base[cle] === 'object' ? completer(base[cle], valeur) : valeur;
+  }
+  return resultat;
+}
+
+export const textes = completer(fr, { en, es }[langue]);
