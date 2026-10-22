@@ -816,6 +816,7 @@ export function creerGlobe(svgElement, { monde, codes, listePays, surPaysDisponi
     if (!surGlobe) return;
     pause();
     const p = paysDisponible(f);
+    if (p) navigator.vibrate?.(10);   // REX n° 1, § 7 : petite vibration au toucher d'un pays disponible (Android)
     if (p) surPaysDisponible?.(p);
     else surPaysBientot?.(nomFrancais(f, codes));
   }
@@ -881,6 +882,19 @@ export function creerGlobe(svgElement, { monde, codes, listePays, surPaysDisponi
     entrer,
     /** Roulette « Surprends-moi » vers un pays ; résolue à l'arrivée (faux si elle n'a pas pu tourner). */
     lancerRoulette,
+
+    /** Position à l'écran de l'emblème d'un pays (départ de l'éclat de piments), ou null s'il n'est pas visible. */
+    async positionEmbleme(code) {
+      const f = tracesDisponibles.data().find((x) => paysDisponible(x).code === code);
+      if (!f) return null;
+      let point = d3.geoCentroid(f);
+      try { point = (await chargerDrapeau(code)).ancre || point; } catch { /* centre du pays */ }
+      const [lambda, phi] = projection.rotate();
+      if (d3.geoDistance(point, [-lambda, -phi]) > Math.PI / 2 - 0.05) return null;
+      const [x, y] = projection(point);
+      const cadre = svgElement.getBoundingClientRect();
+      return [cadre.left + x, cadre.top + y];
+    },
     /** Bouton × du plein écran : retour au globe entier. */
     dezoomer() { if (surGlobe) zoomerAnime(1, DUREE_DEZOOM, d3.easeCubicInOut); },
 

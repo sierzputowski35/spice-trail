@@ -183,6 +183,22 @@ export const textes = {
     explorer: 'Explorer',
     rechercher: 'Rechercher',
     favoris: 'Favoris',
+    profil: 'Profil',
+    profilNouveauTampon: 'Profil, nouveau tampon',
+  },
+
+  // Onglet Profil et micro-récompenses (REX n° 1, § 7 et 8)
+  profil: {
+    etiquette: 'Profil',
+    titre: 'Mon carnet de voyage',
+    passeport: 'Passeport culinaire',
+    serie: (n) => `Série de ${n} jour${n > 1 ? 's' : ''}`,
+    paysSur: (total) => `pays sur ${total}`,
+    recettesTexte: (n) => (n > 1 ? 'recettes découvertes' : 'recette découverte'),
+    aDecouvrir: 'À découvrir',
+    recettesDecouvertes: 'Recettes découvertes',
+    aucuneRecette: 'Touchez « Surprends-moi » pour découvrir votre première recette.',
+    nouveauTampon: (pays) => `Nouveau tampon : ${pays}`,
   },
 
   erreurs: {

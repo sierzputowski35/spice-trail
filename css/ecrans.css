@@ -491,6 +491,19 @@ body { overflow: hidden; }
   transition: transform .25s;
 }
 
+/* Pastille rose sur l'onglet Profil : nouveau tampon pas encore vu (REX n° 1, § 7) */
+.pastille-profil {
+  position: absolute;
+  top: 6px;
+  left: calc(50% + 8px);
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--border);
+  border-radius: 50%;
+  background: var(--mint);
+}
+.pastille-profil[hidden] { display: none; }
+
 /* ---------- Message ---------- */
 #toast {
   position: absolute;
@@ -506,4 +519,193 @@ body { overflow: hidden; }
 #toast.on {
   opacity: 1;
   transform: translate(-50%, 0) rotate(-2deg);
+}
+/* « Nouveau tampon : [Pays] » avec un petit tampon rond à la couleur du pays */
+#toast.avec-tampon {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-left: 8px;
+}
+.mini-tampon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border: 2px solid var(--border);
+  border-radius: 50%;
+  background: var(--couleur-tampon);
+  color: var(--on-accent);
+  outline: 1.5px dashed var(--on-accent);
+  outline-offset: -5px;
+  font-size: 9px;
+  font-weight: 800;
+  transform: rotate(-8deg);
+}
+
+/* Éclat de petits piments à la première visite d'un pays (REX n° 1, § 7) */
+#eclats {
+  position: fixed;
+  z-index: 30;
+  inset: 0;
+  pointer-events: none;
+}
+.eclat {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  margin: -10px 0 0 -10px;
+  animation: eclater var(--d) cubic-bezier(.2, .8, .3, 1) forwards;
+}
+.eclat svg { display: block; width: 100%; height: 100%; }
+@keyframes eclater {
+  from { transform: translate(0, 0) scale(.4) rotate(0); opacity: 1; }
+  70% { opacity: 1; }
+  to { transform: translate(var(--x), var(--y)) scale(1) rotate(var(--r)); opacity: 0; }
+}
+
+/* ---------- Profil : mon carnet de voyage (REX n° 1, § 8) ---------- */
+.profil-entete {
+  padding: calc(env(safe-area-inset-top, 0px) + 22px) max(20px, env(safe-area-inset-right, 0px)) 26px max(20px, env(safe-area-inset-left, 0px));
+  border-bottom: 2px solid var(--border);
+  background: var(--sun);
+  color: var(--on-sun);
+}
+.profil-entete > * { max-width: 720px; }
+.profil-entete h1 {
+  margin-top: 14px;
+  font-size: clamp(34px, 10vw, 46px);
+}
+#profil .screen-pad { padding-top: 22px; }
+.carte-profil {
+  margin-bottom: 22px;
+  padding: 18px;
+  border: 2px solid var(--border);
+  border-radius: 22px;
+  background: var(--surface);
+  box-shadow: var(--hard);
+}
+.carte-profil h2 { font-size: 22px; }
+.carte-profil > h2 { margin-bottom: 14px; }
+.carte-profil .list { margin-bottom: 0; }
+.carte-profil-haut {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.serie {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px 5px 8px;
+  border: 2px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-2);
+  box-shadow: var(--hard-sm);
+  font-size: 13px;
+  font-weight: 700;
+  transform: rotate(2deg);
+}
+.serie svg { width: 18px; height: 18px; fill: var(--safran); }
+.chiffres {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin: 18px 0 14px;
+}
+.chiffres p { margin: 0; color: var(--muted); font-size: 14px; font-weight: 600; line-height: 1.25; }
+.chiffres b {
+  display: block;
+  width: max-content;
+  color: var(--fg);
+  font-family: var(--font-display);
+  font-size: 46px;
+  font-weight: 800;
+  line-height: 1;
+}
+.chiffres b.saute { animation: sauter .5s var(--spring); }
+@keyframes sauter {
+  40% { transform: scale(1.45); }
+}
+.progression {
+  height: 10px;
+  border: 2px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.progression i {
+  display: block;
+  height: 100%;
+  background: var(--sun);
+  transition: width .6s var(--spring);
+}
+.tampons {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(74px, 1fr));
+  gap: 16px 8px;
+  margin: 20px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.tampon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  text-align: center;
+}
+.tampon .disque {
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  border: 2px solid var(--border);
+  border-radius: 50%;
+  background: var(--couleur-tampon);
+  color: var(--on-accent);
+  outline: 2px dashed var(--on-accent);
+  outline-offset: -7px;
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 800;
+  transform: rotate(-8deg);
+}
+.tampon .nom {
+  max-width: 100%;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+.tampon.a-decouvrir .disque {
+  border: 2px dashed var(--muted);
+  background: none;
+  color: var(--muted);
+  outline: none;
+  transform: none;
+}
+.tampon.a-decouvrir .nom { color: var(--muted); font-weight: 500; }
+.tampon.nouveau .disque { animation: imprimer .55s var(--spring) both; }
+@keyframes imprimer {
+  from { transform: scale(2.6) rotate(-40deg); opacity: 0; }
+  to { transform: rotate(-8deg); opacity: 1; }
+}
+.pastille-pays {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin-left: 4px;
+  border: 2px solid var(--border);
+  border-radius: 50%;
+  background: var(--couleur-tampon);
+}
+/* Quand la carte de « Surprends-moi » est ouverte, le message passe en haut pour ne pas la cacher */
+#app:has(#surprise-carte:not([hidden])) #toast {
+  top: calc(env(safe-area-inset-top, 0px) + 78px);
+  bottom: auto;
 }

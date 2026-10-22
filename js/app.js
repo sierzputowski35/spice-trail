@@ -10,13 +10,15 @@ import { creerEcranRecette } from './recette.js';
 import { creerEcranRecherche } from './recherche.js';
 import { creerEcranFavoris } from './favoris.js';
 import { creerEcranAPropos } from './apropos.js';
-import { remplacerImagesManquantes, nomLieu } from './outils.js';
+import { creerEcranProfil, noterJour, noterVisite, noterRecette } from './profil.js';
+import { remplacerImagesManquantes, nomLieu, piment } from './outils.js';
 
 const $ = (selecteur) => document.querySelector(selecteur);
 
 const DUREE_INVASION = 550;   // entrée par le zoom : la couleur du pays envahit l'écran (REX n° 1, § 5.5)
 
 const ICONES = {
+  profil: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4.5 20c1.2-3.6 4.1-5.5 7.5-5.5s6.3 1.9 7.5 5.5"/></svg>',
   cible: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M12 3v4M12 17v4M3 12h4M17 12h4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><circle cx="12" cy="12" r="2.4" fill="currentColor"/></svg>',
   plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>',
   moins: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"/></svg>',
@@ -92,9 +94,11 @@ function construireEcran(listePays) {
       <button data-onglet="explorer" aria-current="page">${ICONES.explorer}${textes.onglets.explorer}</button>
       <button data-onglet="rechercher">${ICONES.rechercher}${textes.onglets.rechercher}</button>
       <button data-onglet="favoris">${ICONES.favoris}${textes.onglets.favoris}</button>
+      <button data-onglet="profil" id="onglet-profil">${ICONES.profil}${textes.onglets.profil}<span class="pastille-profil" id="pastille-profil" hidden></span></button>
     </nav>
 
-    <div class="toast" id="toast" role="status" aria-live="polite"></div>`;
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <div id="eclats" aria-hidden="true"></div>`;
 }
 
 /** Petit message en bas de l'écran, qui disparaît seul. */
@@ -102,9 +106,58 @@ let minuterieMessage;
 function afficherMessage(texte) {
   const message = $('#toast');
   message.textContent = texte;
+  message.classList.remove('avec-tampon');
   message.classList.add('on');
   clearTimeout(minuterieMessage);
   minuterieMessage = setTimeout(() => message.classList.remove('on'), 2200);
+}
+
+/* ---------- Micro-récompenses (REX n° 1, § 7) ---------- */
+
+const reduireMouvement = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/** Message « Nouveau tampon : [Pays] », avec un petit tampon rond à la couleur du pays (2,6 s). */
+function afficherTampon(pays) {
+  const message = $('#toast');
+  message.innerHTML = `<span class="mini-tampon" style="--couleur-tampon: ${versionLisible(pays.couleur)}" aria-hidden="true">${pays.code.toUpperCase()}</span>${textes.profil.nouveauTampon(pays.nom)}`;
+  message.classList.add('avec-tampon', 'on');
+  clearTimeout(minuterieMessage);
+  minuterieMessage = setTimeout(() => message.classList.remove('on'), 2600);
+}
+
+/** Éclat de 11 petits piments depuis l'emblème du pays (0,65 à 0,9 s). */
+function eclaterPiments([x, y], couleur) {
+  const conteneur = $('#eclats');
+  conteneur.style.setProperty('--accent', couleur);   // couleur du pays, lue dans ses données
+  for (let i = 0; i < 11; i += 1) {
+    const angle = (i / 11) * 2 * Math.PI + Math.random() * 0.4;
+    const distance = 50 + Math.random() * 40;
+    const eclat = document.createElement('span');
+    eclat.className = 'eclat';
+    eclat.innerHTML = piment(true);
+    eclat.style.cssText = `left:${x}px;top:${y}px;--x:${(Math.cos(angle) * distance).toFixed(1)}px;--y:${(Math.sin(angle) * distance).toFixed(1)}px;`
+      + `--r:${Math.round(Math.random() * 360 - 180)}deg;--d:${(0.65 + Math.random() * 0.25).toFixed(2)}s`;
+    conteneur.append(eclat);
+    setTimeout(() => eclat.remove(), 1000);
+  }
+}
+
+/** Pastille rose sur l'onglet Profil, jusqu'à ce qu'on l'ouvre. */
+function montrerPastilleProfil(visible) {
+  $('#pastille-profil').hidden = !visible;
+  if (visible) $('#onglet-profil').setAttribute('aria-label', textes.onglets.profilNouveauTampon);
+  else $('#onglet-profil').removeAttribute('aria-label');
+}
+
+/** Visite d'un pays : à la première, éclat de piments, vibration, message et pastille. */
+async function noterVisitePays(pays) {
+  if (!noterVisite(pays.code)) return;
+  navigator.vibrate?.([12, 40, 18]);
+  afficherTampon(pays);
+  montrerPastilleProfil(true);
+  if (reduireMouvement()) return;
+  const point = await globe.positionEmbleme(pays.code);
+  if (point) eclaterPiments(point, pays.couleur);
 }
 
 /** Zone libre pour la carte : entre le bandeau du haut et le panneau de fiche à mi-hauteur. */
@@ -284,6 +337,8 @@ async function surprendre() {
   }
   const recette = auHasard(Object.values(contenus.recettes));
   recetteSurprise = recette.id;
+  noterVisitePays(pays);        // la roulette s'est arrêtée dessus : pays visité
+  noterRecette(recette.id);     // et la recette proposée est découverte
   const etiquette = $('#surprise-pays');
   etiquette.textContent = pays.nom;
   etiquette.style.setProperty('--couleur-etiquette', versionLisible(pays.couleur));   // couleur du pays, assombrie pour le texte blanc
@@ -300,6 +355,7 @@ async function surprendre() {
 async function entrerDansPays(pays, immediat) {
   const depuisLeGlobe = etat.vue === 'globe';
   const chargement = Promise.all([chargerPays(pays), chargerRegions(pays.code)]);
+  noterVisitePays(pays);   // sa carte s'ouvre : pays visité
   if (depuisLeGlobe) {
     montrerAccueil(false);
     await globe.envolerVersCode(pays.code, immediat);   // les données se chargent pendant l'envol
@@ -441,6 +497,7 @@ function ouvrirListe(nom) {
   couvrirLaCarte(true);
   // À propos ne change pas l'onglet du bas : on reste dans la rubrique d'où l'on vient
   if (listes[nom].onglet) choisirOnglet(listes[nom].onglet);
+  if (nom === 'profil') montrerPastilleProfil(false);
   listes[nom].ecran.afficher();
   mettreAJourTitre();
 }
@@ -472,6 +529,7 @@ async function ouvrirRecette(id) {
     }
   }
   if (!trouve) return false;
+  noterRecette(id);   // recette ouverte : découverte (profil)
   cacherListes();
   recetteOuverte = trouve;
   appliquerCouleurPays(trouve.pays.couleur);
@@ -522,6 +580,7 @@ async function demarrer() {
     const [liste, monde, codes] = await Promise.all([chargerListePays(), chargerMonde(), chargerCodesIso()]);
     listePays = liste;
     codesIso = codes;
+    noterJour();   // série de jours (profil)
     construireEcran(listePays);
     remplacerImagesManquantes();
 
@@ -578,6 +637,15 @@ async function demarrer() {
         surLieu: naviguer,
       }),
     };
+    listes.profil = {
+      titre: textes.profil.titre,
+      onglet: 'profil',
+      ecran: creerEcranProfil($('#app'), {
+        listePays,
+        chargerTout: chargerTousLesPays,
+        surRecette: ouvrirRecetteDepuis,
+      }),
+    };
     listes['a-propos'] = {
       titre: textes.aPropos.titre,
       ecran: creerEcranAPropos($('#app'), { surFermer: fermerAPropos, listePays }),
@@ -604,6 +672,7 @@ async function demarrer() {
       if (onglet === 'explorer') naviguer(derniereExploration);
       else if (onglet === 'rechercher') naviguer('#/recherche');
       else if (onglet === 'favoris') naviguer('#/favoris');
+      else if (onglet === 'profil') naviguer('#/profil');
     });
     $('#crumbs').addEventListener('click', (evenement) => {
       const niveau = evenement.target.closest('[data-niveau]')?.dataset.niveau;

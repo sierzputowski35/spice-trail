@@ -704,7 +704,7 @@ button.item:hover { background: var(--surface-2); }
 /* ---------- Barre d'onglets ---------- */
 .tabbar {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 6px;
   height: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px));
   padding: 6px max(10px, env(safe-area-inset-right, 0px)) calc(6px + env(safe-area-inset-bottom, 0px)) max(10px, env(safe-area-inset-left, 0px));
@@ -712,6 +712,7 @@ button.item:hover { background: var(--surface-2); }
   background: var(--surface);
 }
 .tabbar button {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
