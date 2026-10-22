@@ -20,7 +20,7 @@ function auQuart(x) {
 /** Mesure américaine d'un poids en grammes : onces, ou livres au-delà d'une livre (rien sous 5 g). */
 function poidsUS(grammes) {
   const us = textes.unites.us;
-  if (grammes < 5) return '';
+  if (!textes.unites.mesuresUS || grammes < 5) return '';   // français et espagnol : métrique seulement
   const onces = grammes / 28.35;
   if (onces >= 16) return `${nombre(onces / 16)} ${us.lb}`;
   return `${onces < 2 ? nombre(onces) : auQuart(onces)} ${us.oz}`;
@@ -29,6 +29,7 @@ function poidsUS(grammes) {
 /** Mesure américaine d'un volume en millilitres : cuillères à café, à soupe, ou tasses. */
 function volumeUS(ml) {
   const us = textes.unites.us;
+  if (!textes.unites.mesuresUS) return '';
   if (ml < 15) return `${auQuart(ml / 4.93)} ${us.tsp}`;
   if (ml < 60) return `${auQuart(ml / 14.79)} ${us.tbsp}`;
   const tasses = ml / 236.6;
